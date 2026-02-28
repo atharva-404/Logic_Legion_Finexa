@@ -1,18 +1,25 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light';
-interface ThemeCtx { theme: Theme; toggle: () => void; isDark: boolean; }
+interface ThemeContextType {
+    isDark: boolean;
+    theme: 'dark' | 'light';
+    toggle: () => void;
+}
 
-const ThemeContext = createContext<ThemeCtx>({ theme: 'dark', toggle: () => { }, isDark: true });
+const ThemeContext = createContext<ThemeContextType>({
+    isDark: true,
+    theme: 'dark',
+    toggle: () => { },
+});
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [theme, setTheme] = useState<Theme>(() => {
-        const s = localStorage.getItem('finexa_theme') as Theme | null;
-        return s ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+    const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+        const stored = localStorage.getItem('finexa_theme');
+        if (stored === 'light' || stored === 'dark') return stored;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     });
 
     useEffect(() => {
-        // Use 'light' class instead of 'dark', since CSS uses .light selector
         if (theme === 'light') {
             document.documentElement.classList.add('light');
         } else {
@@ -21,13 +28,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('finexa_theme', theme);
     }, [theme]);
 
-    const toggle = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+    function toggle() {
+        setTheme(t => t === 'dark' ? 'light' : 'dark');
+    }
 
     return (
-        <ThemeContext.Provider value={{ theme, toggle, isDark: theme === 'dark' }}>
+        <ThemeContext.Provider value={{ isDark: theme === 'dark', theme, toggle }}>
             {children}
         </ThemeContext.Provider>
     );
 }
 
-export const useTheme = () => useContext(ThemeContext);
+export function useTheme() {
+    return useContext(ThemeContext);
+}

@@ -1,87 +1,188 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, Bot, User, ToggleLeft, ToggleRight, AlertCircle, Zap } from 'lucide-react';
+import {
+    Send, Sparkles, Bot, User, ToggleLeft, ToggleRight,
+    AlertCircle, Zap, RefreshCw, Copy, Check, ChevronDown
+} from 'lucide-react';
 import { useFinancialStore } from '../../store/financialStore';
 import { aiResponses } from '../../lib/mockData';
 import { useAuth } from '../../contexts/AuthContext';
 
-const CHAT_COST = 100; // credits per message
+const CHAT_COST = 100;
+const MAX_FREE_MSGS = 3; // first N messages free in a session for demo
 
 const STARTERS = [
-    { text: 'Analyze my spending habits', key: 'budget' },
-    { text: 'What is my financial health score?', key: 'score' },
-    { text: 'How strong is my emergency fund?', key: 'emergency' },
-    { text: 'Tips to reduce financial stress', key: 'stress' },
-    { text: 'How to build better money habits?', key: 'habit' },
+    'Analyze my spending habits this month',
+    'What is my financial health score?',
+    'How strong is my emergency fund?',
+    'How do I reduce my financial stress?',
+    'Give me 3 money saving tips',
+    'Explain the 50/30/20 rule to me',
 ];
 
 interface ChatMsg {
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-    credits?: number;
-    ts: Date;
+    id: string; role: 'user' | 'assistant'; content: string;
+    credits?: number; ts: Date; streaming?: boolean;
 }
 
 function getResponse(input: string, eli15: boolean): string {
-    const low = input.toLowerCase();
     if (eli15) return aiResponses.eli15;
-    for (const [key, val] of Object.entries(aiResponses)) {
-        if (key !== 'default' && low.includes(key)) return val;
-    }
+    const low = input.toLowerCase();
     if (low.includes('budget') || low.includes('spend')) return aiResponses.budget;
     if (low.includes('score') || low.includes('health')) return aiResponses.score;
     if (low.includes('emergency') || low.includes('fund')) return aiResponses.emergency;
     if (low.includes('stress') || low.includes('anxiety')) return aiResponses.stress;
-    if (low.includes('habit') || low.includes('challenge')) return aiResponses.habit;
+    if (low.includes('habit') || low.includes('challenge') || low.includes('streak')) return aiResponses.habit;
+    if (low.includes('invest')) return aiResponses.invest;
+    if (low.includes('saving') || low.includes('automat')) return aiResponses.savings;
     return aiResponses.default;
+}
+
+// Streaming text effect
+function useStreamText(full: string, streaming: boolean) {
+    const [shown, setShown] = useState('');
+    useEffect(() => {
+        if (!streaming) { setShown(full); return; }
+        setShown('');
+        let i = 0;
+        const timer = setInterval(() => {
+            if (i >= full.length) { clearInterval(timer); return; }
+            // Stream word by word for realism
+            const nextSpace = full.indexOf(' ', i + 1);
+            const end = nextSpace === -1 ? full.length : nextSpace;
+            setShown(full.slice(0, end));
+            i = end;
+        }, 40);
+        return () => clearInterval(timer);
+    }, [full, streaming]);
+    return shown;
+}
+
+function BotMessage({ msg, onCopy }: { msg: ChatMsg; onCopy: (t: string) => void }) {
+    const text = useStreamText(msg.content, msg.streaming ?? false);
+    const [copied, setCopied] = useState(false);
+
+    function copy() {
+        navigator.clipboard.writeText(msg.content);
+        setCopied(true); setTimeout(() => setCopied(false), 1500);
+        onCopy(msg.content);
+    }
+
+    return (
+        <div className="flex gap-3 group">
+            {/* Avatar */}
+            <div className="relative flex-shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
+                    <Bot size={14} className="text-white" />
+                </div>
+                {msg.streaming && (
+                    <motion.div className="absolute -inset-1 rounded-xl border border-purple-400/40"
+                        animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }} />
+                )}
+            </div>
+            <div className="max-w-[82%]">
+                <div className="px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed relative"
+                    style={{ background: 'rgba(168,85,247,0.08)', color: 'var(--text-2)', border: '1px solid rgba(168,85,247,0.14)' }}>
+                    {/* Shimmer while streaming */}
+                    {msg.streaming && (
+                        <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                            <div className="absolute inset-0 shimmer opacity-30" />
+                        </div>
+                    )}
+                    <span className="relative z-10">{text}</span>
+                    {msg.streaming && text.length < msg.content.length && (
+                        <span className="inline-block w-0.5 h-4 ml-0.5 animate-pulse" style={{ background: 'var(--purple)', verticalAlign: 'text-bottom' }} />
+                    )}
+                </div>
+                <div className="flex items-center gap-2 mt-1 px-1">
+                    <span className="text-[10px] text-3">
+                        {msg.ts.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <button onClick={copy}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] flex items-center gap-0.5 text-3 hover:text-2">
+                        {copied ? <><Check size={9} style={{ color: '#10b981' }} /> Copied</> : <><Copy size={9} /> Copy</>}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export default function AICoach() {
     const { aiCredits, useCredits, eli15Mode, toggleEli15 } = useFinancialStore();
     const { user } = useAuth();
+
     const [msgs, setMsgs] = useState<ChatMsg[]>([{
         id: '0', role: 'assistant',
-        content: `Hi ${user?.first_name || 'there'}! I'm your Finexa AI Coach. Ask me anything about your finances — budgeting, savings, goals, or how to improve your financial health. Each message costs ${CHAT_COST} AI credits.`,
+        content: `Hi ${user?.first_name || 'there'}! I'm your Finexa AI Financial Coach — powered by advanced AI. I can analyse your spending, explain financial concepts, and guide you toward your goals.\n\nEach message costs ${CHAT_COST} AI credits. Ask me anything!`,
         ts: new Date(),
     }]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
-    const [lowCredit, setLowCredit] = useState(false);
+    const [sessionMsgs, setSessionMsgs] = useState(0);
+    const [showStarters, setShowStarters] = useState(true);
     const bottomRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [msgs, isTyping]);
 
-    useEffect(() => {
-        setLowCredit(aiCredits < CHAT_COST);
-    }, [aiCredits]);
+    const sendMsg = useCallback(async (text: string) => {
+        if (!text.trim() || isTyping) return;
 
-    async function sendMsg(text: string) {
-        if (!text.trim()) return;
-        if (!useCredits(CHAT_COST, 'AI Coach message')) {
-            setLowCredit(true);
-            return;
+        // Deduct credits (first 3 session messages are free for UX)
+        if (sessionMsgs >= MAX_FREE_MSGS) {
+            const ok = useCredits(CHAT_COST, 'AI Coach message');
+            if (!ok) return;
         }
 
-        const userMsg: ChatMsg = { id: Date.now().toString(), role: 'user', content: text, credits: CHAT_COST, ts: new Date() };
+        const userMsg: ChatMsg = { id: Date.now().toString(), role: 'user', content: text, credits: sessionMsgs >= MAX_FREE_MSGS ? CHAT_COST : 0, ts: new Date() };
         setMsgs(m => [...m, userMsg]);
         setInput('');
+        setShowStarters(false);
         setIsTyping(true);
+        setSessionMsgs(s => s + 1);
 
-        await new Promise(r => setTimeout(r, 700 + Math.random() * 600));
+        // Simulate AI thinking delay
+        await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
 
-        const responseText = getResponse(text, eli15Mode);
-        const botMsg: ChatMsg = { id: (Date.now() + 1).toString(), role: 'assistant', content: responseText, ts: new Date() };
+        const content = getResponse(text, eli15Mode);
+        const botMsg: ChatMsg = {
+            id: (Date.now() + 1).toString(), role: 'assistant',
+            content, ts: new Date(), streaming: true,
+        };
         setMsgs(m => [...m, botMsg]);
         setIsTyping(false);
+
+        // Stop streaming after text completes
+        const streamDuration = Math.min(content.length * 40 + 500, 4000);
+        setTimeout(() => {
+            setMsgs(m => m.map(x => x.id === botMsg.id ? { ...x, streaming: false } : x));
+        }, streamDuration);
+
+        inputRef.current?.focus();
+    }, [isTyping, sessionMsgs, useCredits, eli15Mode]);
+
+    function clearChat() {
+        setMsgs([{
+            id: Date.now().toString(), role: 'assistant',
+            content: "Chat cleared. What would you like to explore?",
+            ts: new Date(),
+        }]);
+        setShowStarters(true);
+        setSessionMsgs(0);
     }
 
+    const lowCredits = aiCredits < CHAT_COST && sessionMsgs >= MAX_FREE_MSGS;
+    const credPct = Math.min(100, (aiCredits / 100000) * 100);
+
     return (
-        <div className="flex flex-col h-[calc(100vh-9rem)] max-w-3xl mx-auto space-y-0">
+        <div className="flex flex-col h-[calc(100vh-9rem)] max-w-3xl mx-auto">
             {/* Header */}
-            <div className="card rounded-b-none border-b-0 px-5 py-4 flex items-center justify-between flex-shrink-0">
+            <div className="card rounded-b-none px-5 py-4 flex items-center justify-between flex-shrink-0"
+                style={{ borderBottomColor: 'transparent' }}>
                 <div className="flex items-center gap-3">
                     <div className="relative">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -92,104 +193,114 @@ export default function AICoach() {
                             style={{ background: '#10b981', borderColor: 'var(--surface)' }} />
                     </div>
                     <div>
-                        <p className="font-semibold text-1 text-sm">Finexa AI Coach</p>
-                        <p className="text-xs text-3">Financial adviser · {CHAT_COST} credits/msg</p>
+                        <p className="font-semibold text-sm text-1">Finexa AI Coach</p>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                            <p className="text-[10px] text-3">Online · {CHAT_COST} credits/msg</p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {/* Credits indicator */}
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs"
-                        style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
-                        <Sparkles size={11} style={{ color: 'var(--purple)' }} />
-                        <span className="font-mono font-bold text-1">{aiCredits.toLocaleString()}</span>
-                        <span className="text-3">credits</span>
+                <div className="flex items-center gap-2">
+                    {/* Credits mini bar */}
+                    <div className="hidden sm:flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-1.5 text-xs">
+                            <Sparkles size={10} style={{ color: 'var(--purple)' }} />
+                            <span className="font-mono font-bold text-1">{aiCredits.toLocaleString()}</span>
+                        </div>
+                        <div className="w-24 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(168,85,247,0.15)' }}>
+                            <motion.div className="h-full rounded-full" animate={{ width: `${credPct}%` }}
+                                style={{ background: credPct > 20 ? 'linear-gradient(90deg, #7c3aed, #a855f7)' : 'linear-gradient(90deg,#ef4444,#f97316)' }} />
+                        </div>
                     </div>
 
-                    {/* ELI-15 toggle */}
+                    {/* ELI-15 */}
                     <button onClick={toggleEli15}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all"
                         style={eli15Mode
-                            ? { background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)', color: 'var(--purple-light)' }
+                            ? { background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)', color: 'var(--purple-light)' }
                             : { background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text-3)' }}>
-                        {eli15Mode ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                        {eli15Mode ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
                         ELI-15
+                    </button>
+
+                    {/* Clear */}
+                    <button onClick={clearChat} className="btn-ghost p-2" title="Clear chat">
+                        <RefreshCw size={13} />
                     </button>
                 </div>
             </div>
 
             {/* Disclaimer */}
-            <div className="flex items-center gap-2 px-5 py-2.5 text-xs"
-                style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderTop: 'none', borderBottom: '1px solid rgba(245,158,11,0.15)' }}>
-                <AlertCircle size={11} className="text-yellow-500 flex-shrink-0" />
-                <span style={{ color: 'rgba(245,158,11,0.85)' }}>Educational only — not investment, legal, or financial advice.</span>
+            <div className="px-5 py-2 text-[10px] flex items-center gap-1.5"
+                style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.12)', borderTop: 'none', borderBottom: 'none' }}>
+                <AlertCircle size={10} className="text-yellow-500 flex-shrink-0" />
+                <span style={{ color: 'rgba(245,158,11,0.8)' }}>Educational coach only — not investment, legal or financial advice.</span>
             </div>
 
             {/* Messages */}
-            <div className="card rounded-none border-t-0 border-b-0 flex-1 overflow-y-auto p-5 space-y-4">
+            <div className="card rounded-none border-y-0 flex-1 overflow-y-auto p-5 space-y-5">
                 {/* Starters */}
-                {msgs.length <= 1 && (
-                    <div className="grid grid-cols-1 gap-2 mb-4">
-                        {STARTERS.map(s => (
-                            <motion.button key={s.key} whileHover={{ x: 4 }} onClick={() => sendMsg(s.text)}
-                                className="text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-3"
-                                style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)', color: 'var(--text-2)' }}>
-                                <span>{s.text}</span>
-                                <Zap size={13} style={{ color: 'var(--purple)', flexShrink: 0 }} />
-                            </motion.button>
-                        ))}
-                    </div>
-                )}
+                <AnimatePresence>
+                    {showStarters && (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                            className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                            {STARTERS.map((s, i) => (
+                                <motion.button key={s} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+                                    onClick={() => sendMsg(s)} whileHover={{ x: 3 }}
+                                    className="text-left px-4 py-3 rounded-xl text-xs font-medium transition-all flex items-center justify-between gap-2"
+                                    style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.13)', color: 'var(--text-2)' }}>
+                                    <span>{s}</span>
+                                    <Zap size={11} style={{ color: 'var(--purple)', flexShrink: 0 }} />
+                                </motion.button>
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {msgs.map(msg => (
-                    <motion.div key={msg.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                        className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        {msg.role === 'assistant' && (
-                            <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center mt-0.5"
-                                style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
-                                <Bot size={14} className="text-white" />
-                            </div>
-                        )}
-                        <div className="max-w-[82%]">
-                            <div className="px-4 py-3 rounded-2xl text-sm leading-relaxed"
-                                style={msg.role === 'user'
-                                    ? { background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff', borderRadius: '18px 18px 4px 18px' }
-                                    : { background: 'rgba(168,85,247,0.08)', color: 'var(--text-2)', border: '1px solid rgba(168,85,247,0.15)', borderRadius: '18px 18px 18px 4px' }
-                                }>
-                                {msg.content}
-                            </div>
-                            <div className="flex items-center gap-2 mt-1 px-1">
-                                <span className="text-[10px] text-3">
-                                    {msg.ts.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                                {msg.role === 'user' && msg.credits && (
-                                    <span className="text-[10px] flex items-center gap-0.5" style={{ color: 'rgba(168,85,247,0.6)' }}>
-                                        <Sparkles size={8} /> -{msg.credits}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                        {msg.role === 'user' && (
-                            <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mt-0.5"
-                                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                                <User size={14} style={{ color: 'var(--text-2)' }} />
-                            </div>
-                        )}
-                    </motion.div>
+                    msg.role === 'assistant'
+                        ? <BotMessage key={msg.id} msg={msg} onCopy={() => { }} />
+                        : (
+                            <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                className="flex gap-3 justify-end">
+                                <div className="max-w-[80%]">
+                                    <div className="px-4 py-3 rounded-2xl rounded-tr-sm text-sm leading-relaxed"
+                                        style={{ background: 'linear-gradient(135deg, #6d28d9, #a855f7)', color: '#fff' }}>
+                                        {msg.content}
+                                    </div>
+                                    <div className="flex items-center justify-end gap-2 mt-1 px-1">
+                                        <span className="text-[10px] text-3">{msg.ts.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                        {msg.credits ? (
+                                            <span className="text-[10px] flex items-center gap-0.5" style={{ color: 'rgba(168,85,247,0.6)' }}>
+                                                <Sparkles size={8} /> -{msg.credits}
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] text-green-500">free</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mt-0.5"
+                                    style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
+                                    <User size={13} />
+                                </div>
+                            </motion.div>
+                        )
                 ))}
 
+                {/* Typing indicator */}
                 {isTyping && (
                     <div className="flex gap-3">
                         <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center"
                             style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
                             <Bot size={14} className="text-white" />
                         </div>
-                        <div className="px-4 py-3 rounded-2xl flex items-center gap-1.5"
+                        <div className="px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-1.5"
                             style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.15)' }}>
                             {[0, 1, 2].map(i => (
                                 <motion.div key={i} className="w-2 h-2 rounded-full"
                                     style={{ background: 'var(--purple)' }}
-                                    animate={{ y: [0, -6, 0] }} transition={{ duration: 0.55, repeat: Infinity, delay: i * 0.15 }} />
+                                    animate={{ y: [0, -6, 0] }} transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.14 }} />
                             ))}
                         </div>
                     </div>
@@ -199,36 +310,45 @@ export default function AICoach() {
 
             {/* Input */}
             <div className="card rounded-t-none border-t-0 px-4 py-4 flex-shrink-0">
-                {lowCredit && (
-                    <div className="flex items-center justify-between p-2.5 mb-3 rounded-xl text-xs"
-                        style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                {lowCredits && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                        className="flex items-center justify-between p-2.5 mb-3 rounded-xl text-xs"
+                        style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
                         <span className="flex items-center gap-2 text-red-400">
-                            <AlertCircle size={13} /> Insufficient credits
+                            <AlertCircle size={12} /> Not enough AI credits
                         </span>
-                        <button className="btn btn-sm text-xs px-3 py-1.5"
-                            onClick={() => { /* Open buy modal */ }}>
-                            Buy Credits
-                        </button>
-                    </div>
+                        <span className="text-[10px] text-3">Buy more from the sidebar</span>
+                    </motion.div>
                 )}
-                <div className="flex items-end gap-3">
-                    <textarea
-                        className="field flex-1 resize-none min-h-[44px] max-h-32 py-3 text-sm"
-                        placeholder={lowCredit ? 'Not enough credits…' : 'Ask about your finances…'}
-                        disabled={lowCredit}
+                <div className="flex items-end gap-2.5">
+                    <textarea ref={inputRef}
+                        className="field flex-1 resize-none text-sm leading-relaxed"
+                        style={{ minHeight: 44, maxHeight: 120, paddingTop: 10, paddingBottom: 10 }}
+                        placeholder={lowCredits ? 'Insufficient credits…' : 'Ask about your finances… (Enter to send)'}
+                        disabled={lowCredits}
                         value={input}
                         onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(input); } }}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(input); }
+                        }}
                         rows={1}
                     />
-                    <button className="btn px-4 py-3 flex-shrink-0"
-                        disabled={!input.trim() || isTyping || lowCredit}
+                    <motion.button
+                        whileTap={{ scale: 0.92 }}
+                        className="btn px-3.5 py-3 flex-shrink-0 self-end"
+                        style={(!input.trim() || isTyping || lowCredits) ? { opacity: 0.4 } : {}}
+                        disabled={!input.trim() || isTyping || lowCredits}
                         onClick={() => sendMsg(input)}>
-                        <Send size={16} />
-                    </button>
+                        <motion.div animate={isTyping ? { rotate: 360 } : {}} transition={{ duration: 0.6, repeat: Infinity, ease: 'linear' }}>
+                            {isTyping ? <RefreshCw size={15} /> : <Send size={15} />}
+                        </motion.div>
+                    </motion.button>
                 </div>
                 <p className="text-[10px] text-3 mt-2 text-center">
-                    Each message costs <span style={{ color: 'var(--purple)' }}>{CHAT_COST} credits</span> · {aiCredits.toLocaleString()} remaining
+                    {sessionMsgs < MAX_FREE_MSGS
+                        ? <span className="text-green-400">First {MAX_FREE_MSGS - sessionMsgs} message{MAX_FREE_MSGS - sessionMsgs !== 1 ? 's' : ''} free this session</span>
+                        : <>{CHAT_COST} credits/msg · <span style={{ color: 'var(--purple)' }}>{aiCredits.toLocaleString()} remaining</span></>
+                    }
                 </p>
             </div>
         </div>

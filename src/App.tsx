@@ -18,7 +18,6 @@ import AICoach from './pages/dashboard/AICoach';
 import FinancialEducation from './pages/dashboard/FinancialEducation';
 import Settings from './pages/dashboard/Settings';
 import Wallet from './pages/dashboard/Wallet';
-import Subscription from './pages/dashboard/Subscription';
 import Documents from './pages/dashboard/Documents';
 import Transactions from './pages/dashboard/Transactions';
 
@@ -37,6 +36,7 @@ export default function App() {
                         }>
                             <Route index element={<Overview />} />
                             <Route path="wallet" element={<Wallet />} />
+                            <Route path="transactions" element={<Transactions />} />
                             <Route path="spending" element={<SpendingInsights />} />
                             <Route path="budget" element={<BudgetOptimizer />} />
                             <Route path="goals" element={<GoalsTracker />} />
@@ -45,9 +45,7 @@ export default function App() {
                             <Route path="habits" element={<HabitChallenges />} />
                             <Route path="coach" element={<AICoach />} />
                             <Route path="documents" element={<Documents />} />
-                            <Route path="transactions" element={<Transactions />} />
                             <Route path="education" element={<FinancialEducation />} />
-                            <Route path="subscription" element={<Subscription />} />
                             <Route path="settings" element={<Settings />} />
                         </Route>
 
