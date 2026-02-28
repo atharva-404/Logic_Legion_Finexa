@@ -216,6 +216,7 @@ export default function DashboardLayout() {
 
     const SidebarContent = () => (
         <div className="flex flex-col h-full overflow-hidden">
+            {/* Logo */}
             <Link to="/" className="flex items-center gap-3 px-4 py-5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
                 <div className="relative flex-shrink-0">
                     <div className="absolute -inset-1.5 rounded-full opacity-55"
@@ -238,6 +239,7 @@ export default function DashboardLayout() {
                 )}
             </Link>
 
+            {/* AI Credits */}
             {!collapsed && (
                 <div className="mx-3 mt-3 mb-1 p-3 rounded-xl" style={{ background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.15)' }}>
                     <div className="flex items-center justify-between mb-2">
@@ -263,6 +265,7 @@ export default function DashboardLayout() {
                 </div>
             )}
 
+            {/* Nav */}
             <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
                 {navItems.map(item => (
                     <NavLink key={item.to} to={item.to} end={item.end}
@@ -274,20 +277,25 @@ export default function DashboardLayout() {
                 ))}
             </nav>
 
-            <div className="px-2 pt-2 pb-4 flex-shrink-0 space-y-0.5" style={{ borderTop: '1px solid var(--border)' }}>
-                <button onClick={() => navigate('/dashboard/settings')}
-                    className={`nav-item w-full ${collapsed ? 'justify-center px-0' : 'gap-3 h-9'}`}>
-                    <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
-                        style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
-                        {initials}
+            {/* User + logout */}
+            <div className="px-2 pt-2 pb-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border)' }}>
+                {!collapsed && (
+                    <div className="flex items-center gap-3 px-2 py-2 mb-1">
+                        <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-xs font-bold text-white glow-sm"
+                            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
+                            {initials}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold text-1 truncate">{user?.first_name || user?.username}</p>
+                            <p className="text-[10px] text-3 truncate">{user?.email}</p>
+                        </div>
                     </div>
-                    {!collapsed && <span className="text-xs font-semibold">Profile</span>}
-                </button>
+                )}
                 <button onClick={() => { logout(); navigate('/'); }}
-                    className={`nav-item w-full hover:!text-red-500 hover:!bg-red-500/8 ${collapsed ? 'justify-center px-0' : 'gap-3 h-9'}`}
+                    className={`nav-item w-full hover:!text-red-500 hover:!bg-red-500/8 ${collapsed ? 'justify-center px-0' : ''}`}
                     style={{ color: isDark ? 'rgba(239,68,68,0.55)' : 'rgba(220,38,38,0.65)' }}>
-                    <LogOut size={14} className="flex-shrink-0" />
-                    {!collapsed && <span className="text-xs font-semibold">Sign Out</span>}
+                    <LogOut size={15} className="flex-shrink-0" />
+                    {!collapsed && <span>Sign Out</span>}
                 </button>
             </div>
         </div>
@@ -295,8 +303,9 @@ export default function DashboardLayout() {
 
     return (
         <div className="min-h-screen flex" style={{ background: 'var(--bg)' }}>
+            {/* Desktop Sidebar */}
             <motion.aside animate={{ width: collapsed ? 60 : 228 }} transition={{ duration: 0.22, ease: 'easeInOut' }}
-                className="hidden md:flex flex-col flex-shrink-0 relative z-10"
+                className="hidden md:flex flex-col flex-shrink-0 sticky top-0 h-screen z-10"
                 style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
                 <SidebarContent />
                 <button onClick={() => setCollapsed(!collapsed)}
@@ -308,6 +317,7 @@ export default function DashboardLayout() {
                 </button>
             </motion.aside>
 
+            {/* Mobile Drawer */}
             <AnimatePresence>
                 {mobileOpen && (
                     <>
@@ -323,7 +333,9 @@ export default function DashboardLayout() {
                 )}
             </AnimatePresence>
 
+            {/* Main */}
             <div className="flex-1 flex flex-col min-w-0">
+                {/* Top bar — glassmorphism */}
                 <header className="flex items-center justify-between px-5 py-3 flex-shrink-0 sticky top-0 z-30"
                     style={{
                         background: 'var(--surface)',
@@ -334,6 +346,7 @@ export default function DashboardLayout() {
                             ? '0 1px 0 rgba(168,85,247,0.12), 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
                             : '0 1px 0 rgba(124,58,237,0.08), 0 4px 20px rgba(124,58,237,0.04)',
                     }}>
+
                     <div className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
                         style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(124,58,237,0.6) 25%, rgba(168,85,247,0.8) 50%, rgba(124,58,237,0.6) 75%, transparent 100%)' }} />
 
@@ -353,7 +366,9 @@ export default function DashboardLayout() {
                         </div>
                     </div>
 
+                    {/* Right-aligned controls */}
                     <div className="flex items-center gap-2">
+                        {/* Credits pill */}
                         <button onClick={() => setBuyCreditsOpen(true)}
                             className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
                             style={{
@@ -367,9 +382,13 @@ export default function DashboardLayout() {
                             {aiCredits >= 1000 ? `${(aiCredits / 1000).toFixed(0)}k` : aiCredits} credits
                         </button>
 
+                        {/* Finexa Score */}
                         <FinexaScorePill />
+
+                        {/* Theme toggle */}
                         <ThemeToggle size="sm" />
 
+                        {/* Bell */}
                         <button onClick={() => setNotifOpen(!notifOpen)}
                             className="w-9 h-9 rounded-xl flex items-center justify-center relative transition-all duration-200"
                             style={{
@@ -384,12 +403,15 @@ export default function DashboardLayout() {
                             )}
                         </button>
 
+                        {/* Avatar */}
                         <button onClick={() => navigate('/dashboard/settings')}
                             className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white transition-all duration-200"
                             style={{
                                 background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                            }}>
+                                boxShadow: '0 0 18px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.3)',
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 28px rgba(168,85,247,0.7), 0 2px 8px rgba(0,0,0,0.3)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 18px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.3)'; }}>
                             {initials}
                         </button>
                     </div>

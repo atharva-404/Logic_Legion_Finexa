@@ -43,9 +43,21 @@ export const useFinancialStore = create<FinancialState>()(
             aiCredits: 100000,
             creditLog: [],
 
-            setIncome: (income) => set({ monthlyIncome: income }),
-            setExpenses: (expenses) => set({ monthlyExpenses: expenses }),
-            setSavings: (savings) => set({ emergencySavings: savings }),
+            setIncome: (income) => {
+                const { useCredits } = get();
+                useCredits(10, 'Income Strategy Analysis');
+                set({ monthlyIncome: income });
+            },
+            setExpenses: (expenses) => {
+                const { useCredits } = get();
+                useCredits(10, 'Expense Control Analysis');
+                set({ monthlyExpenses: expenses });
+            },
+            setSavings: (savings) => {
+                const { useCredits } = get();
+                useCredits(10, 'Capital Reserve Analysis');
+                set({ emergencySavings: savings });
+            },
             setHealthScore: (score) => set({ healthScore: score }),
 
             addGoal: (goal) => set(state => ({ goals: [...state.goals, goal] })),
@@ -63,14 +75,29 @@ export const useFinancialStore = create<FinancialState>()(
                     if (!habit) return state;
                     const isNowCompleted = !habit.completed;
 
-                    // Each protocol impacts health score by 4-6 points
+                    // Each protocol impacts health score by 5 points
                     const scoreAdjustment = isNowCompleted ? 5 : -5;
+
+                    // Deduct 50 credits for approving compliance
+                    let newCredits = state.aiCredits;
+                    let newLog = state.creditLog;
+
+                    if (isNowCompleted) {
+                        if (state.aiCredits < 50) return state; // Insufficient credits
+                        newCredits -= 50;
+                        newLog = [
+                            { reason: 'Protocol Surveillance', amount: 50, ts: Date.now(), type: 'use' },
+                            ...state.creditLog.slice(0, 49)
+                        ];
+                    }
 
                     return {
                         habits: state.habits.map(h =>
                             h.id === id ? { ...h, completed: isNowCompleted, streak: isNowCompleted ? h.streak + 1 : h.streak } : h
                         ),
-                        healthScore: Math.max(0, Math.min(100, state.healthScore + scoreAdjustment))
+                        healthScore: Math.max(0, Math.min(100, state.healthScore + scoreAdjustment)),
+                        aiCredits: newCredits,
+                        creditLog: newLog
                     };
                 }),
 
@@ -101,7 +128,7 @@ export const useFinancialStore = create<FinancialState>()(
 
             deleteAllData: () => set({
                 monthlyIncome: 85000, monthlyExpenses: 54500, emergencySavings: 120000,
-                healthScore: 50, goals: defaultGoals, habits: defaultHabits,
+                healthScore: 65, goals: defaultGoals, habits: defaultHabits,
                 eli15Mode: false, aiCredits: 100000, creditLog: [],
             }),
         }),

@@ -49,7 +49,7 @@ const ICON_MAP: Record<string, any> = {
 };
 
 export default function HabitChallenges() {
-    const { habits, healthScore, toggleHabit } = useFinancialStore();
+    const { habits, healthScore, toggleHabit, aiCredits } = useFinancialStore();
     const { isDark } = useTheme();
 
     const completedCount = habits.filter(h => h.completed).length;
@@ -165,15 +165,19 @@ export default function HabitChallenges() {
                                 {habit.description}
                             </p>
 
-                            <button onClick={() => toggleHabit(habit.id)}
+                            <button
+                                onClick={() => toggleHabit(habit.id)}
+                                disabled={!habit.completed && aiCredits < 50}
                                 className={`w-full py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 border ${habit.completed
                                     ? (isDark ? 'bg-green-500/10 border-green-500/20 text-green-400 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400' : 'bg-green-600/5 border-green-600/10 text-green-600 hover:bg-red-500/5 hover:border-red-500/10 hover:text-red-600')
-                                    : (isDark ? 'bg-white/5 border-white/10 text-white hover:bg-white/10' : 'bg-slate-900 border-slate-900 text-white hover:bg-black')
+                                    : (!habit.completed && aiCredits < 50)
+                                        ? 'bg-slate-500/10 border-slate-500/20 text-slate-500 cursor-not-allowed'
+                                        : (isDark ? 'bg-white/5 border-white/10 text-white hover:bg-white/10' : 'bg-slate-900 border-slate-900 text-white hover:bg-black')
                                     } shadow-md`}>
                                 {habit.completed ? (
                                     <><Trophy size={14} /> Protocol Compliant (Revoke)</>
                                 ) : (
-                                    <>Approve Protocol Compliance</>
+                                    aiCredits < 50 ? 'Insufficient Credits (50 Required)' : 'Approve Protocol Compliance (50 Credits)'
                                 )}
                             </button>
                         </motion.div>
