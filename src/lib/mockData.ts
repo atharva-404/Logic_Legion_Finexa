@@ -30,6 +30,14 @@ export interface ChatMessage {
     id: string; role: 'user' | 'assistant'; content: string; timestamp: string;
 }
 
+export interface VideoLesson {
+    id: string; title: string; duration: string; thumbnail: string; youtubeId: string; category: string;
+}
+
+export interface EduQnA {
+    id: string; question: string; answer: string;
+}
+
 export const DEMO_USER: User = {
     id: 'usr_01', name: 'Arjun Sharma', email: 'arjun@example.com',
     createdAt: '2024-01-15', monthlyIncome: 85000, currency: 'INR',
@@ -71,14 +79,14 @@ export const defaultHabits: HabitChallenge[] = [
 ];
 
 export const educationCards = [
-    { id: 'e1', question: 'What is an Emergency Fund?', answer: "An emergency fund is 3–6 months of living expenses set aside in a liquid account. It's your financial safety net for unexpected events like job loss or medical emergencies. Think of it as your personal insurance policy.", category: 'Foundations', difficulty: 'Beginner' },
-    { id: 'e2', question: 'What is Debt-to-Income Ratio?', answer: "DTI ratio = (Total Monthly Debt Payments / Gross Monthly Income) x 100. A DTI below 36% is generally considered healthy. If yours is above 43%, focus on paying down debt before taking on new obligations.", category: 'Debt', difficulty: 'Intermediate' },
-    { id: 'e3', question: 'How to Control Impulse Spending?', answer: "Use the 24-hour rule: wait a full day before any unplanned purchase over Rs 500. Also try the 'cost per use' method — if an item costs Rs 3,000 and you'll use it 3 times, it costs Rs 1,000 per use. Often that realization kills the urge.", category: 'Behavior', difficulty: 'Beginner' },
-    { id: 'e4', question: 'Why Does Budgeting Matter?', answer: 'Budgeting is telling your money where to go instead of wondering where it went. People with a written budget save on average 18% more per month than those without one. Even a rough budget beats no budget.', category: 'Planning', difficulty: 'Beginner' },
-    { id: 'e5', question: 'What is the 50/30/20 Rule?', answer: '50% of take-home pay goes to Needs (rent, food, utilities). 30% goes to Wants (dining, entertainment). 20% goes to Savings and Debt. This rule gives you a simple framework to start budgeting without complex spreadsheets.', category: 'Planning', difficulty: 'Beginner' },
-    { id: 'e6', question: 'What is a Savings Rate?', answer: 'Savings rate = (Amount Saved / Gross Income) x 100. Saving 20% is considered excellent; 10-15% is good; under 5% is concerning. Even saving 1% more each month compounds into significant wealth over time.', category: 'Savings', difficulty: 'Beginner' },
-    { id: 'e7', question: 'What is Lifestyle Creep?', answer: 'Lifestyle creep is when your spending rises as your income rises — you earn more but save the same amount. To avoid it, commit to saving 50% of every raise before adjusting your lifestyle.', category: 'Behavior', difficulty: 'Intermediate' },
-    { id: 'e8', question: 'How Does Compounding Work?', answer: 'Compounding means earning returns on your returns. Rs 10,000 saved at 8% per year becomes Rs 21,589 in 10 years, Rs 46,610 in 20 years, and Rs 1,00,627 in 30 years — without adding a single rupee. Time is the most powerful ingredient.', category: 'Foundations', difficulty: 'Intermediate' },
+    { id: 'e1', question: 'Strategic Asset Allocation', answer: "An investment strategy that aims to balance risk and reward by apportioning a portfolio's assets according to an individual's goals, risk tolerance, and investment horizon. It focuses on the long-term target weights for various asset classes like equities, fixed income, and alternatives.", category: 'Asset Management', difficulty: 'Intermediate' },
+    { id: 'e2', question: 'Tax-Loss Harvesting Strategy', answer: "The practice of selling securities at a loss to offset a capital gains tax liability. This strategy is typically used to limit the recognition of short-term capital gains, which are generally taxed at a higher marginal rate than long-term capital gains.", category: 'Tax Strategy', difficulty: 'Advanced' },
+    { id: 'e3', question: 'Emergency Liquidity Buffer', answer: "Establishing a high-liquidity reserve equivalent to 6-12 months of operational expenses. This buffer acts as a primary risk mitigation tool against systemic shocks or personal income disruption, ensuring solvency without liquidating long-term positions.", category: 'Risk Mitigation', difficulty: 'Beginner' },
+    { id: 'e4', question: 'Modern Portfolio Theory (MPT)', answer: "A mathematical framework for assembling a portfolio of assets such that the expected return is maximized for a given level of risk. Its key tenet is that an asset's risk and return should not be assessed in isolation, but by how it contributes to the overall portfolio's risk and return.", category: 'Portfolio Theory', difficulty: 'Advanced' },
+    { id: 'e5', question: 'The 50/30/20 Budgeting Framework', answer: "A streamlined methodology for capital allocation: 50% to essential obligations (needs), 30% to discretionary lifestyle (wants), and 20% to debt reduction and wealth accumulation (savings/investments).", category: 'Capital Allocation', difficulty: 'Beginner' },
+    { id: 'e6', question: 'Net Worth Velocity', answer: "A metric tracking the rate at which an individual's total net worth increases over a specific period. It is influenced by the combination of active income retention, portfolio yield, and debt amortization rates.", category: 'Wealth Metrics', difficulty: 'Intermediate' },
+    { id: 'e7', question: 'Mitigating Lifestyle Inflation', answer: "The strategic practice of capping discretionary spending increases as gross income rises. Advisors recommend a 50% capture rule: redirecting at least half of any income increase directly into high-yield assets or debt principal reduction.", category: 'Behavioral Finance', difficulty: 'Intermediate' },
+    { id: 'e8', question: 'The Power of Capital Compounding', answer: "The mathematical process where the value of an investment increases because the earnings on an investment, both capital gains and interest, earn interest as time passes. It is the fundamental driver of long-term intergenerational wealth creation.", category: 'Foundations', difficulty: 'Beginner' },
 ];
 
 export const aiResponses: Record<string, string> = {
@@ -100,6 +108,43 @@ export const subscriptions = [
     { name: 'Hotstar', amount: 499, lastUsed: '18 days ago', status: 'warning' },
     { name: 'Gym Membership', amount: 800, lastUsed: '32 days ago', status: 'leak' },
     { name: 'Magazine App', amount: 150, lastUsed: '45 days ago', status: 'leak' },
+];
+
+export const videoLessons: VideoLesson[] = [
+    { id: 'v1', title: 'Institutional Macro Surveillance', duration: '5:24', thumbnail: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=800&q=80&fit=crop', youtubeId: 'zqUopiayC98', category: 'Executive' },
+    { id: 'v2', title: 'Capital Structure & Yield Optimization', duration: '8:15', thumbnail: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=80&fit=crop', youtubeId: '3XzU78P3p1M', category: 'Strategy' },
+    { id: 'v3', title: 'Systemic Risk & Tail Hedging Models', duration: '6:42', thumbnail: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=800&q=80&fit=crop', youtubeId: '8p_O4GisWpI', category: 'Risk' },
+    { id: 'v4', title: 'Alternative Alpha: Private Equity & Credit', duration: '12:05', thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80&fit=crop', youtubeId: 'S_shX2K-Sks', category: 'Wealth' },
+];
+
+export const eduQnA: EduQnA[] = [
+    { id: 'q1', question: "Optimizing Portfolio for Capital Preservation?", answer: "Strategic allocation during volatile regimes focuses on high-quality debt instruments and hedged equity positions. We recommend a core-satellite approach to maintain liquidity while capturing tactical alpha." },
+    { id: 'q2', question: "Mitigating Short-Term Capital Gains Exposure?", answer: "Leveraging tax-loss harvesting and charitable trusts can significantly reduce effective tax rates. Advisors prioritize holding assets for >12 months to benefit from preferential long-term rates where applicable." },
+    { id: 'q3', question: "Integrating ESG into Alpha Generation?", answer: "Environmental, Social, and Governance (ESG) factors are increasingly predictive of long-term solvency. Integrating these metrics into risk-on positions helps mitigate tail risks associated with regulatory shifts." },
+];
+
+export const advisoryQuiz = [
+    {
+        id: 'q1',
+        question: 'Which strategy is most effective for mitigating tail risk during a liquidity crunch?',
+        options: ['Long-only Equities', 'Credit Default Swaps (CDS)', 'High-Yield Bonds', 'Cryptocurrency'],
+        answer: 1,
+        rationale: 'Credit Default Swaps provide a hedge against credit events and default risk, making them effective for tail risk mitigation in liquidity-strained environments.'
+    },
+    {
+        id: 'q2',
+        question: 'What is the primary objective of Tactical Asset Allocation (TAA)?',
+        options: ['Long-term Wealth Growth', 'Minimizing Tax Liability', 'Capitalizing on Short-term Market Inefficiencies', 'Maintaining Fixed Asset Weights'],
+        answer: 2,
+        rationale: 'TAA is an active management strategy that shifts asset percentages to take advantage of short-term market pricing anomalies or strong sector trends.'
+    },
+    {
+        id: 'q3',
+        question: 'In a rising interest rate environment, which fixed-income metric becomes most critical?',
+        options: ['Current Yield', 'Duration', 'Credit Rating', 'Coupon Frequency'],
+        answer: 1,
+        rationale: 'Duration measures a bond sensitivity to interest rate changes. In a rising rate environment, lower duration is generally preferred to minimize price depreciation.'
+    }
 ];
 
 export const spendingAnomalies = [

@@ -49,7 +49,6 @@ export default function App() {
                             <Route path="budget" element={<BudgetOptimizer />} />
                             <Route path="goals" element={<GoalsTracker />} />
                             <Route path="emergency" element={<EmergencyRisk />} />
-                            <Route path="simulator" element={<IncomeSimulator />} />
                             <Route path="habits" element={<HabitChallenges />} />
                             <Route path="coach" element={<AICoach />} />
                             <Route path="documents" element={<Documents />} />

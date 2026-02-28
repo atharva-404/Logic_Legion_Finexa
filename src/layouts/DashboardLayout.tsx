@@ -14,7 +14,7 @@ import ThemeToggle from '../components/ThemeToggle';
 
 import { useFinancialStore } from '../store/financialStore';
 
-// Remove Subscription from navItems
+// Sidebar items - Institutional navigation
 const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Overview', end: true },
     { to: '/dashboard/wallet', icon: Wallet, label: 'Wallet' },
@@ -23,7 +23,6 @@ const navItems = [
     { to: '/dashboard/budget', icon: TrendingUp, label: 'Budget' },
     { to: '/dashboard/goals', icon: Target, label: 'Goals' },
     { to: '/dashboard/emergency', icon: Shield, label: 'Risk & Safety' },
-    { to: '/dashboard/simulator', icon: Zap, label: 'Simulator' },
     { to: '/dashboard/habits', icon: Trophy, label: 'Challenges' },
     { to: '/dashboard/coach', icon: MessageCircle, label: 'AI Coach' },
     { to: '/dashboard/documents', icon: FileText, label: 'Documents' },
@@ -37,7 +36,6 @@ const CREDIT_PACKS = [
     { amount: 500000, price: 299, label: '500k', desc: 'Power user pack' },
 ];
 
-// Sample notifications
 const SAMPLE_NOTIFS = [
     { id: 1, type: 'warning', title: 'Food & Dining over budget', body: 'You have spent Rs 2,400 above your monthly limit.', time: '2h ago', read: false },
     { id: 2, type: 'success', title: 'Goal milestone reached', body: 'Emergency Fund is 47% funded. Keep going!', time: '5h ago', read: false },
@@ -86,7 +84,6 @@ function NotifPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                         className="fixed right-4 top-16 z-50 w-80 card overflow-hidden"
                         style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-                        {/* Header */}
                         <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid var(--border)' }}>
                             <div className="flex items-center gap-2">
                                 <Bell size={16} style={{ color: 'var(--purple)' }} />
@@ -100,7 +97,6 @@ function NotifPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
                                 <button onClick={onClose} className="btn-ghost p-1.5"><X size={14} /></button>
                             </div>
                         </div>
-                        {/* List */}
                         <div className="overflow-y-auto flex-1">
                             {notifs.length === 0 ? (
                                 <div className="py-12 text-center text-3 text-sm">All caught up!</div>
@@ -198,7 +194,7 @@ function CreditsBuyModal({ isOpen, onClose, onBuy }: { isOpen: boolean; onClose:
 export default function DashboardLayout() {
     const { user, logout } = useAuth();
     const { isDark } = useTheme();
-    const { aiCredits, addCredits, totalPoints } = useFinancialStore();
+    const { aiCredits, addCredits } = useFinancialStore();
     const navigate = useNavigate();
 
     const [collapsed, setCollapsed] = useState(false);
@@ -220,7 +216,6 @@ export default function DashboardLayout() {
 
     const SidebarContent = () => (
         <div className="flex flex-col h-full overflow-hidden">
-            {/* Logo */}
             <Link to="/" className="flex items-center gap-3 px-4 py-5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
                 <div className="relative flex-shrink-0">
                     <div className="absolute -inset-1.5 rounded-full opacity-55"
@@ -243,7 +238,6 @@ export default function DashboardLayout() {
                 )}
             </Link>
 
-            {/* AI Credits */}
             {!collapsed && (
                 <div className="mx-3 mt-3 mb-1 p-3 rounded-xl" style={{ background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.15)' }}>
                     <div className="flex items-center justify-between mb-2">
@@ -266,11 +260,9 @@ export default function DashboardLayout() {
                             initial={{ width: 0 }} animate={{ width: `${credPct}%` }} transition={{ duration: 0.8 }}
                             style={{ background: credPct > 20 ? 'linear-gradient(90deg, #7c3aed, #a855f7)' : 'linear-gradient(90deg, #ef4444, #f97316)' }} />
                     </div>
-                    {aiCredits < 10000 && <p className="text-[10px] text-red-500 mt-1.5 font-medium">Low — top up now</p>}
                 </div>
             )}
 
-            {/* Nav */}
             <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
                 {navItems.map(item => (
                     <NavLink key={item.to} to={item.to} end={item.end}
@@ -282,39 +274,20 @@ export default function DashboardLayout() {
                 ))}
             </nav>
 
-            {/* Habit points */}
-            {!collapsed && (
-                <div className="mx-3 mb-2 p-3 rounded-xl" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.1)' }}>
-                    <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-xs text-3">Habit Points</span>
-                        <span className="text-xs font-bold" style={{ color: 'var(--purple-light)' }}>{totalPoints} pts</span>
+            <div className="px-2 pt-2 pb-4 flex-shrink-0 space-y-0.5" style={{ borderTop: '1px solid var(--border)' }}>
+                <button onClick={() => navigate('/dashboard/settings')}
+                    className={`nav-item w-full ${collapsed ? 'justify-center px-0' : 'gap-3 h-9'}`}>
+                    <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
+                        style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
+                        {initials}
                     </div>
-                    <div className="h-1 rounded-full overflow-hidden" style={{ background: isDark ? 'rgba(168,85,247,0.12)' : 'rgba(124,58,237,0.08)' }}>
-                        <div className="h-full rounded-full transition-all duration-700"
-                            style={{ width: `${Math.min(100, (totalPoints / 1000) * 100)}%`, background: 'linear-gradient(90deg, #7c3aed, #a855f7)' }} />
-                    </div>
-                </div>
-            )}
-
-            {/* User + logout */}
-            <div className="px-2 pt-2 pb-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border)' }}>
-                {!collapsed && (
-                    <div className="flex items-center gap-3 px-2 py-2 mb-1">
-                        <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-xs font-bold text-white glow-sm"
-                            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
-                            {initials}
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-sm font-semibold text-1 truncate">{user?.first_name || user?.username}</p>
-                            <p className="text-[10px] text-3 truncate">{user?.email}</p>
-                        </div>
-                    </div>
-                )}
+                    {!collapsed && <span className="text-xs font-semibold">Profile</span>}
+                </button>
                 <button onClick={() => { logout(); navigate('/'); }}
-                    className={`nav-item w-full hover:!text-red-500 hover:!bg-red-500/8 ${collapsed ? 'justify-center px-0' : ''}`}
+                    className={`nav-item w-full hover:!text-red-500 hover:!bg-red-500/8 ${collapsed ? 'justify-center px-0' : 'gap-3 h-9'}`}
                     style={{ color: isDark ? 'rgba(239,68,68,0.55)' : 'rgba(220,38,38,0.65)' }}>
-                    <LogOut size={15} className="flex-shrink-0" />
-                    {!collapsed && <span>Sign Out</span>}
+                    <LogOut size={14} className="flex-shrink-0" />
+                    {!collapsed && <span className="text-xs font-semibold">Sign Out</span>}
                 </button>
             </div>
         </div>
@@ -322,7 +295,6 @@ export default function DashboardLayout() {
 
     return (
         <div className="min-h-screen flex" style={{ background: 'var(--bg)' }}>
-            {/* Desktop Sidebar */}
             <motion.aside animate={{ width: collapsed ? 60 : 228 }} transition={{ duration: 0.22, ease: 'easeInOut' }}
                 className="hidden md:flex flex-col flex-shrink-0 relative z-10"
                 style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
@@ -336,7 +308,6 @@ export default function DashboardLayout() {
                 </button>
             </motion.aside>
 
-            {/* Mobile Drawer */}
             <AnimatePresence>
                 {mobileOpen && (
                     <>
@@ -352,9 +323,7 @@ export default function DashboardLayout() {
                 )}
             </AnimatePresence>
 
-            {/* Main */}
             <div className="flex-1 flex flex-col min-w-0">
-                {/* Top bar — glassmorphism */}
                 <header className="flex items-center justify-between px-5 py-3 flex-shrink-0 sticky top-0 z-30"
                     style={{
                         background: 'var(--surface)',
@@ -365,8 +334,6 @@ export default function DashboardLayout() {
                             ? '0 1px 0 rgba(168,85,247,0.12), 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
                             : '0 1px 0 rgba(124,58,237,0.08), 0 4px 20px rgba(124,58,237,0.04)',
                     }}>
-
-                    {/* Gradient accent line at very bottom of header */}
                     <div className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
                         style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(124,58,237,0.6) 25%, rgba(168,85,247,0.8) 50%, rgba(124,58,237,0.6) 75%, transparent 100%)' }} />
 
@@ -386,9 +353,7 @@ export default function DashboardLayout() {
                         </div>
                     </div>
 
-                    {/* Right-aligned controls */}
                     <div className="flex items-center gap-2">
-                        {/* Credits pill */}
                         <button onClick={() => setBuyCreditsOpen(true)}
                             className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
                             style={{
@@ -396,45 +361,35 @@ export default function DashboardLayout() {
                                 border: '1px solid var(--border-hi)',
                                 color: 'var(--purple)',
                                 boxShadow: isDark ? '0 2px 12px rgba(124,58,237,0.15)' : '0 2px 8px rgba(124,58,237,0.05)',
-                            }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(124,58,237,0.2)' : 'rgba(124,58,237,0.12)'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(124,58,237,0.1)' : 'rgba(124,58,237,0.05)'; }}>
+                            }}>
                             <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--purple)', boxShadow: `0 0 6px ${isDark ? 'rgba(168,85,247,0.9)' : 'rgba(124,58,237,0.4)'}` }} />
                             <Sparkles size={11} />
                             {aiCredits >= 1000 ? `${(aiCredits / 1000).toFixed(0)}k` : aiCredits} credits
                         </button>
 
-                        {/* Finexa Score */}
                         <FinexaScorePill />
-
-                        {/* Theme toggle */}
                         <ThemeToggle size="sm" />
 
-                        {/* Bell */}
                         <button onClick={() => setNotifOpen(!notifOpen)}
                             className="w-9 h-9 rounded-xl flex items-center justify-center relative transition-all duration-200"
                             style={{
                                 background: notifOpen ? 'rgba(168,85,247,0.18)' : 'rgba(168,85,247,0.04)',
                                 border: `1px solid ${notifOpen ? 'var(--purple)' : 'var(--border)'}`,
-                                boxShadow: notifOpen ? (isDark ? '0 0 16px rgba(168,85,247,0.3)' : '0 0 12px rgba(168,85,247,0.15)') : 'none',
                             }}>
                             <Bell size={15} style={{ color: notifOpen ? 'var(--purple)' : 'var(--text-3)' }} />
                             {unreadNotifs > 0 && (
                                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                                     className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                                    style={{ background: 'var(--purple)', boxShadow: `0 0 6px ${isDark ? 'rgba(168,85,247,0.9)' : 'rgba(124,58,237,0.4)'}` }} />
+                                    style={{ background: 'var(--purple)' }} />
                             )}
                         </button>
 
-                        {/* Avatar */}
                         <button onClick={() => navigate('/dashboard/settings')}
                             className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white transition-all duration-200"
                             style={{
                                 background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                                boxShadow: '0 0 18px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.3)',
-                            }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 28px rgba(168,85,247,0.7), 0 2px 8px rgba(0,0,0,0.3)'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 18px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.3)'; }}>
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                            }}>
                             {initials}
                         </button>
                     </div>
@@ -445,13 +400,9 @@ export default function DashboardLayout() {
                 </main>
             </div>
 
-            {/* Notification Panel */}
             <NotifPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
-
-            {/* Buy Credits Modal */}
             <CreditsBuyModal isOpen={buyCreditsOpen} onClose={() => setBuyCreditsOpen(false)} onBuy={handleBuy} />
 
-            {/* Toast */}
             <AnimatePresence>
                 {toast && (
                     <motion.div initial={{ opacity: 0, y: 20, x: '-50%' }} animate={{ opacity: 1, y: 0, x: '-50%' }} exit={{ opacity: 0, y: 20, x: '-50%' }}

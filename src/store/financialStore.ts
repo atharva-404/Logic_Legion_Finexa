@@ -9,7 +9,6 @@ interface FinancialState {
     healthScore: number;
     goals: Goal[];
     habits: HabitChallenge[];
-    totalPoints: number;
     eli15Mode: boolean;
     aiCredits: number;
 
@@ -23,7 +22,6 @@ interface FinancialState {
     removeGoal: (id: string) => void;
     toggleHabit: (id: string) => void;
     toggleEli15: () => void;
-    addPoints: (pts: number) => void;
     deleteAllData: () => void;
 
     // AI Credits
@@ -38,10 +36,9 @@ export const useFinancialStore = create<FinancialState>()(
             monthlyIncome: 85000,
             monthlyExpenses: 54500,
             emergencySavings: 120000,
-            healthScore: 50,
+            healthScore: 65,
             goals: defaultGoals,
             habits: defaultHabits,
-            totalPoints: 175,
             eli15Mode: false,
             aiCredits: 100000,
             creditLog: [],
@@ -61,17 +58,23 @@ export const useFinancialStore = create<FinancialState>()(
             removeGoal: (id) => set(state => ({ goals: state.goals.filter(g => g.id !== id) })),
 
             toggleHabit: (id) =>
-                set(state => ({
-                    habits: state.habits.map(h =>
-                        h.id === id ? { ...h, completed: !h.completed, streak: !h.completed ? h.streak + 1 : h.streak } : h
-                    ),
-                    totalPoints: state.habits.find(h => h.id === id)?.completed
-                        ? state.totalPoints - (state.habits.find(h => h.id === id)?.points ?? 0)
-                        : state.totalPoints + (state.habits.find(h => h.id === id)?.points ?? 0),
-                })),
+                set(state => {
+                    const habit = state.habits.find(h => h.id === id);
+                    if (!habit) return state;
+                    const isNowCompleted = !habit.completed;
+
+                    // Each protocol impacts health score by 4-6 points
+                    const scoreAdjustment = isNowCompleted ? 5 : -5;
+
+                    return {
+                        habits: state.habits.map(h =>
+                            h.id === id ? { ...h, completed: isNowCompleted, streak: isNowCompleted ? h.streak + 1 : h.streak } : h
+                        ),
+                        healthScore: Math.max(0, Math.min(100, state.healthScore + scoreAdjustment))
+                    };
+                }),
 
             toggleEli15: () => set(state => ({ eli15Mode: !state.eli15Mode })),
-            addPoints: (pts) => set(state => ({ totalPoints: state.totalPoints + pts })),
 
             // AI Credits
             useCredits: (amount, reason = 'AI Feature') => {
@@ -98,7 +101,7 @@ export const useFinancialStore = create<FinancialState>()(
 
             deleteAllData: () => set({
                 monthlyIncome: 85000, monthlyExpenses: 54500, emergencySavings: 120000,
-                healthScore: 50, goals: defaultGoals, habits: defaultHabits, totalPoints: 0,
+                healthScore: 50, goals: defaultGoals, habits: defaultHabits,
                 eli15Mode: false, aiCredits: 100000, creditLog: [],
             }),
         }),
