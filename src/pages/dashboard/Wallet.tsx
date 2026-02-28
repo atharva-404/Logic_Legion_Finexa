@@ -1,122 +1,86 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Plus, X, Check, Wifi, CreditCard as CardIcon, Trash2, Shield, Eye, EyeOff, Lock, ChevronRight, ChevronLeft
+    ArrowDownLeft, ArrowUpRight, Plus, Eye, EyeOff,
+    TrendingUp, TrendingDown, Clock, X, Banknote,
+    RefreshCw, Check, Wifi, CreditCard as CardIcon
 } from 'lucide-react';
-import { useFinancialStore, CardInfo } from '../../store/financialStore';
-import { useTheme } from '../../contexts/ThemeContext';
+import { WalletAPI } from '../../lib/api';
 
-function CardChip() {
-    return (
-        <div className="w-10 h-8 rounded-md bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 relative overflow-hidden shadow-inner border border-yellow-700/30">
-            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-yellow-900/20" />
-            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-yellow-900/20" />
-            <div className="absolute inset-2 border-[1px] border-yellow-900/10 rounded-sm" />
-        </div>
-    );
+interface Tx {
+    id: number; type: 'credit' | 'debit'; description: string;
+    amount: number; date: string; category: string;
 }
 
-function VirtualCard({ card, active, index, total, onRemove }: { card: CardInfo; active: boolean; index: number; total: number; onRemove: () => void }) {
-    const [showFull, setShowFull] = useState(false);
+interface Card {
+    id: number; last4: string; holder: string; expiry: string;
+    type: 'Visa' | 'Mastercard'; gradient: string;
+}
 
+const SEED_TXS: Tx[] = [
+    { id: 1, type: 'credit', description: 'Salary Deposit', amount: 85000, date: '2026-02-28T09:00:00Z', category: 'Income' },
+    { id: 2, type: 'debit', description: 'Grocery Store', amount: 3200, date: '2026-02-27T14:30:00Z', category: 'Food' },
+    { id: 3, type: 'debit', description: 'Electricity Bill', amount: 1700, date: '2026-02-26T11:00:00Z', category: 'Utilities' },
+    { id: 4, type: 'credit', description: 'Freelance Project', amount: 12000, date: '2026-02-25T16:00:00Z', category: 'Income' },
+    { id: 5, type: 'debit', description: 'Netflix Subscription', amount: 649, date: '2026-02-24T08:00:00Z', category: 'Entertainment' },
+    { id: 6, type: 'debit', description: 'Restaurant Dinner', amount: 2100, date: '2026-02-23T20:00:00Z', category: 'Dining' },
+    { id: 7, type: 'debit', description: 'Fuel Refill', amount: 1500, date: '2026-02-22T07:30:00Z', category: 'Transport' },
+    { id: 8, type: 'credit', description: 'Cashback Reward', amount: 320, date: '2026-02-21T00:00:00Z', category: 'Rewards' },
+];
+
+const INITIAL_CARDS: Card[] = [
+    { id: 1, last4: '4231', holder: 'Arjun Sharma', expiry: '08/28', type: 'Visa', gradient: 'linear-gradient(135deg, #1a0a2e 0%, #2d1b69 50%, #4c1d95 100%)' },
+    { id: 2, last4: '9087', holder: 'Arjun Sharma', expiry: '12/27', type: 'Mastercard', gradient: 'linear-gradient(135deg, #0d0b2e 0%, #3b1d8c 70%, #7c3aed 100%)' },
+];
+
+function VirtualCard({ card, hidden, active }: { card: Card; hidden: boolean; active: boolean }) {
     return (
         <motion.div
-            initial={false}
-            animate={{
-                scale: active ? 1 : 0.9,
-                x: (index - 0) * 20, // Offset for stack effect if we were showing all, but here we show active
-                z: active ? 0 : -100,
-                opacity: active ? 1 : 0,
-            }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className={`mx-auto w-full max-w-[420px] aspect-[1.586/1] relative overflow-hidden rounded-2xl shadow-2xl transition-all duration-500 perspective-1000 ${active ? 'z-30 cursor-default' : 'z-0 pointer-events-none'}`}
-            style={{ background: card.gradient }}>
-
-            {/* Glossy overlay & textures */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/10 pointer-events-none" />
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/brushed-alum.png')]" />
-
+            whileHover={{ scale: 1.02, rotateY: 3 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            className="credit-card w-full cursor-pointer relative overflow-hidden"
+            style={{ background: card.gradient, opacity: active ? 1 : 0.5 }}>
+            {/* Circle decorations */}
+            <svg className="absolute inset-0 w-full h-full opacity-60" viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <circle cx="300" cy="-30" r="120" stroke="rgba(255,255,255,0.06)" strokeWidth="1" fill="none" />
+                <circle cx="300" cy="-30" r="175" stroke="rgba(255,255,255,0.04)" strokeWidth="1" fill="none" />
+                <circle cx="-20" cy="200" r="100" stroke="rgba(255,255,255,0.04)" strokeWidth="1" fill="none" />
+            </svg>
+            {/* Top sheen */}
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, transparent 55%)' }} />
             {/* Animated scan line */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <motion.div className="absolute left-0 right-0 h-[100%] w-[200%] -rotate-45"
-                    style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }}
-                    animate={{ x: ['-100%', '100%'] }} transition={{ duration: 4, repeat: Infinity, ease: 'linear' }} />
+                <motion.div className="absolute left-0 right-0 h-px"
+                    style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.8), transparent)' }}
+                    animate={{ y: ['0%', '280%'] }} transition={{ duration: 2.8, repeat: Infinity, ease: 'linear', repeatDelay: 1 }} />
             </div>
-
-            <div className="relative z-10 p-7 h-full flex flex-col justify-between">
-                {/* Top Section: Branding & Type */}
-                <div className="flex items-start justify-between">
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-white/10 backdrop-blur-md border border-white/10 shadow-lg">
-                                <CardIcon size={20} className="text-white" />
-                            </div>
-                            <div>
-                                <p className="text-white text-[10px] font-mono tracking-[0.3em] opacity-60 leading-none">PROTOCOL</p>
-                                <p className="text-white font-bold text-xs tracking-tight">FINEXA INSURED</p>
-                            </div>
-                        </div>
-                        <CardChip />
+            <div className="relative z-10 p-5 flex flex-col h-full">
+                <div className="flex items-center justify-between mb-auto">
+                    <div className="flex items-center gap-1.5 opacity-60">
+                        <Wifi size={11} className="text-white -rotate-90" />
+                        <span className="text-white text-[10px] font-mono tracking-widest">NFC</span>
                     </div>
-
-                    <div className="flex flex-col items-end gap-3 text-right">
-                        <div className="flex items-center gap-2">
-                            <span className="text-white font-black italic tracking-tighter text-lg opacity-90">{card.type}</span>
-                            {active && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/30 transition-all border border-white/5 opacity-40 hover:opacity-100"
-                                >
-                                    <Trash2 size={12} className="text-white" />
-                                </button>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-black/20 backdrop-blur-sm border border-white/5">
-                            <Wifi size={12} className="text-white -rotate-90 opacity-60" />
-                            <span className="text-white text-[8px] font-mono tracking-[0.2em] font-bold">RFID PROTECT</span>
-                        </div>
-                    </div>
+                    <span className="text-white/80 text-xs font-bold tracking-wider">{card.type}</span>
                 </div>
-
-                {/* Middle: Card Number */}
-                <div className="space-y-1.5 relative group">
-                    <div className="flex items-center justify-between">
-                        <p className="text-white/30 text-[9px] font-mono tracking-[0.4em]">DYNAMIC ASSET IDENTIFIER</p>
-                        {active && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setShowFull(!showFull); }}
-                                className="relative z-20 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-all flex items-center gap-2 group/btn border border-white/5 shadow-sm active:scale-95"
-                            >
-                                {showFull ? <EyeOff size={14} className="text-white/70" /> : <Eye size={14} className="text-white/70" />}
-                                <span className="text-white text-[10px] font-bold tracking-widest">{showFull ? 'HIDE ASSET' : 'VIEW DETAILS'}</span>
-                            </button>
-                        )}
-                    </div>
-                    <p className="text-white font-mono text-xl sm:text-2xl tracking-[0.18em] drop-shadow-lg flex items-center gap-1.5 transition-all duration-300">
-                        {showFull ? card.number : `•••• •••• •••• ${card.last4}`}
+                <div className="mt-4 mb-2.5">
+                    <p className="text-white/35 text-[9px] mb-1 font-mono tracking-[0.25em]">CARD NUMBER</p>
+                    <p className="text-white font-mono text-sm tracking-[0.22em]">
+                        {hidden ? '•••• •••• ••••' : '4532 8821 3765'} {card.last4}
                     </p>
                 </div>
-
-                {/* Bottom: Holder & Expiry */}
                 <div className="flex items-end justify-between">
-                    <div className="min-w-0">
-                        <p className="text-white/30 text-[8px] tracking-[0.3em] mb-1.5 uppercase font-mono">ASSET CONTROLLER</p>
-                        <p className="text-white text-sm font-bold uppercase truncate max-w-[200px] tracking-wide">{card.holder}</p>
+                    <div>
+                        <p className="text-white/35 text-[9px] tracking-[0.2em] mb-0.5">CARD HOLDER</p>
+                        <p className="text-white text-xs font-semibold">{card.holder}</p>
                     </div>
-
-                    <div className="flex gap-8 items-end">
-                        <div className="text-right">
-                            <p className="text-white/30 text-[8px] tracking-[0.2em] mb-1.5 uppercase font-mono">CVV</p>
-                            <p className="text-white text-sm font-bold font-mono">{showFull ? card.cvv : '•••'}</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-white/30 text-[8px] tracking-[0.2em] mb-1.5 uppercase font-mono">EXPIRY</p>
-                            <p className="text-white text-sm font-bold font-mono">{card.expiry}</p>
-                        </div>
-                        <div className="flex -space-x-2.5 translate-y-0.5">
-                            <div className="w-9 h-9 rounded-full bg-red-600/80 backdrop-blur-md border border-white/20 shadow-xl" />
-                            <div className="w-9 h-9 rounded-full bg-orange-400/80 backdrop-blur-md border border-white/20 shadow-xl" />
-                        </div>
+                    <div className="text-right">
+                        <p className="text-white/35 text-[9px] tracking-[0.2em] mb-0.5">EXPIRES</p>
+                        <p className="text-white text-xs font-semibold">{card.expiry}</p>
+                    </div>
+                    <div className="flex -space-x-2 pb-0.5">
+                        <div className="w-7 h-7 rounded-full" style={{ background: 'rgba(220,38,38,0.75)' }} />
+                        <div className="w-7 h-7 rounded-full" style={{ background: 'rgba(234,179,8,0.75)' }} />
                     </div>
                 </div>
             </div>
@@ -124,52 +88,74 @@ function VirtualCard({ card, active, index, total, onRemove }: { card: CardInfo;
     );
 }
 
+type ModalMode = 'add-money' | 'withdraw' | 'add-card' | null;
+
 const CARD_GRADIENTS = [
-    'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 50%, #1e1e1e 100%)', // Stealth Black
-    'linear-gradient(135deg, #1a0a2e 0%, #2d1b69 50%, #4c1d95 100%)', // Purple Deep
-    'linear-gradient(135deg, #0f172a 0%, #1e40af 60%, #3b82f6 100%)', // Royal Blue
-    'linear-gradient(135deg, #0c1a1a 0%, #065f46 60%, #10b981 100%)', // Emerald Green
-    'linear-gradient(135deg, #1c0533 0%, #581c87 60%, #a855f7 100%)', // Radiant Purple
+    'linear-gradient(135deg, #1a0a2e 0%, #2d1b69 50%, #4c1d95 100%)',
+    'linear-gradient(135deg, #0d0b2e 0%, #3b1d8c 70%, #7c3aed 100%)',
+    'linear-gradient(135deg, #0f172a 0%, #1e40af 60%, #3b82f6 100%)',
+    'linear-gradient(135deg, #0c1a1a 0%, #065f46 60%, #10b981 100%)',
+    'linear-gradient(135deg, #1c0533 0%, #581c87 60%, #a855f7 100%)',
 ];
 
 export default function WalletPage() {
-    const { cards, addCard, removeCard } = useFinancialStore();
-    const { isDark } = useTheme();
-
+    const [balance, setBalance] = useState(120000);
+    const [txList, setTxList] = useState<Tx[]>(SEED_TXS);
+    const [cards, setCards] = useState<Card[]>(INITIAL_CARDS);
     const [activeCard, setActiveCard] = useState(0);
-    const [isAddMode, setIsAddMode] = useState(false);
+    const [hidden, setHidden] = useState(false);
+    const [modal, setModal] = useState<ModalMode>(null);
+    const [amount, setAmount] = useState('');
+    const [desc, setDesc] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
     const [toastMsg, setToastMsg] = useState('');
+    const [filter, setFilter] = useState<'all' | 'credit' | 'debit'>('all');
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Add-card form state
-    const [newCard, setNewCard] = useState({
-        number: '',
-        holder: '',
-        expiry: '',
-        cvv: '',
-        type: 'Visa' as 'Visa' | 'Mastercard' | 'Amex',
-        colorIdx: 0
-    });
+    const [newCard, setNewCard] = useState({ number: '', holder: '', expiry: '', cvv: '', type: 'Visa' as 'Visa' | 'Mastercard', colorIdx: 0 });
+
+    useEffect(() => {
+        WalletAPI.getWallet().then(w => setBalance(w.balance)).catch(() => { });
+        WalletAPI.getTransactions().then(d => { if (d.results?.length) setTxList(d.results); }).catch(() => { });
+    }, []);
 
     function showToast(msg: string) { setToastMsg(msg); setTimeout(() => setToastMsg(''), 2500); }
+
+    async function handleMoneySubmit() {
+        const num = parseFloat(amount);
+        if (!amount || isNaN(num) || num <= 0) return;
+        if (modal === 'withdraw' && num > balance) { showToast('Insufficient balance'); return; }
+        setIsSaving(true);
+        const newTx: Tx = {
+            id: Date.now(), type: modal === 'add-money' ? 'credit' : 'debit',
+            description: desc || (modal === 'add-money' ? 'Deposit' : 'Withdrawal'),
+            amount: num, date: new Date().toISOString(), category: modal === 'add-money' ? 'Transfer In' : 'Transfer Out',
+        };
+        try {
+            if (modal === 'add-money') await WalletAPI.addMoney(num, newTx.description);
+            else await WalletAPI.withdraw(num, newTx.description);
+        } catch { /* offline */ }
+        setBalance(b => modal === 'add-money' ? b + num : b - num);
+        setTxList(t => [newTx, ...t]);
+        showToast(modal === 'add-money' ? `Added Rs ${num.toLocaleString('en-IN')}` : `Withdrawn Rs ${num.toLocaleString('en-IN')}`);
+        setAmount(''); setDesc(''); setModal(null); setIsSaving(false);
+    }
 
     function handleAddCard() {
         const num = newCard.number.replace(/\s/g, '');
         if (num.length < 15 || !newCard.holder || !newCard.expiry) return;
-
-        addCard({
-            number: newCard.number,
-            last4: num.slice(-4),
-            cvv: newCard.cvv || '123',
-            holder: newCard.holder,
-            expiry: newCard.expiry,
-            type: newCard.type,
+        const last4 = num.slice(-4);
+        const card: Card = {
+            id: Date.now(), last4, holder: newCard.holder,
+            expiry: newCard.expiry, type: newCard.type as 'Visa' | 'Mastercard',
             gradient: CARD_GRADIENTS[newCard.colorIdx],
-        });
-
+        };
+        setCards(c => [...c, card]);
+        setActiveCard(cards.length);
         setNewCard({ number: '', holder: '', expiry: '', cvv: '', type: 'Visa', colorIdx: 0 });
-        setIsAddMode(false);
-        // Retain current card view as requested
-        showToast('Credential integrated into vault');
+        setModal(null);
+        showToast('Card added successfully');
     }
 
     function formatCardNumber(v: string) {
@@ -183,246 +169,333 @@ export default function WalletPage() {
         return digits;
     }
 
-    const nextCard = () => setActiveCard((prev) => (prev + 1) % cards.length);
-    const prevCard = () => setActiveCard((prev) => (prev - 1 + cards.length) % cards.length);
+    const filtered = filter === 'all' ? txList : txList.filter(t => t.type === filter);
+    const income = txList.filter(t => t.type === 'credit').reduce((s, t) => s + t.amount, 0);
+    const expense = txList.filter(t => t.type === 'debit').reduce((s, t) => s + t.amount, 0);
 
     return (
-        <div className="space-y-12 max-w-2xl mx-auto pb-24 px-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="space-y-5 max-w-4xl mx-auto">
+            <div className="flex items-center justify-between">
                 <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Lock size={14} className="text-purple-500" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-purple-500/80">Secure Enclave</span>
-                    </div>
-                    <h1 className="font-display font-black text-4xl tracking-tight text-1">Institutional <span className="text-gradient">Wallet</span></h1>
-                    <p className="text-xs text-3 mt-2 font-medium max-w-sm">Encrypted capital storage and primary asset credential management.</p>
+                    <h1 className="font-display font-bold text-2xl text-1">Wallet</h1>
+                    <p className="text-xs text-3 mt-0.5">Manage cards, balance and transactions</p>
                 </div>
-                <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-card border border-border shadow-sm">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-2">Vault Active</span>
+                <button onClick={async () => {
+                    setIsRefreshing(true);
+                    try {
+                        const [w, d] = await Promise.all([WalletAPI.getWallet(), WalletAPI.getTransactions()]);
+                        setBalance(w.balance);
+                        if (d.results?.length) setTxList(d.results);
+                        showToast('Refreshed');
+                    } catch { showToast('Offline — showing cached data'); }
+                    setTimeout(() => setIsRefreshing(false), 700);
+                }} className="btn-ghost p-2">
+                    <motion.div animate={isRefreshing ? { rotate: 360 } : {}} transition={{ duration: 0.7 }}>
+                        <RefreshCw size={16} />
+                    </motion.div>
+                </button>
+            </div>
+
+            {/* Top grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+                {/* Card stack */}
+                <div className="lg:col-span-3 space-y-4">
+                    <AnimatePresence mode="wait">
+                        <motion.div key={activeCard}
+                            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.22 }}>
+                            <VirtualCard card={cards[activeCard] ?? cards[0]} hidden={hidden} active={true} />
+                        </motion.div>
+                    </AnimatePresence>
+                    {/* Dots + add */}
+                    <div className="flex items-center justify-center gap-2">
+                        {cards.map((_, i) => (
+                            <button key={i} onClick={() => setActiveCard(i)}
+                                className="rounded-full transition-all duration-300"
+                                style={{ width: i === activeCard ? 22 : 7, height: 7, background: i === activeCard ? 'var(--purple)' : 'var(--border)' }} />
+                        ))}
+                        <button onClick={() => setModal('add-card')}
+                            className="w-7 h-7 rounded-full flex items-center justify-center ml-1 transition-all hover:scale-110"
+                            style={{ border: '1.5px dashed var(--border-hi)', color: 'var(--text-3)' }}
+                            title="Add new card">
+                            <Plus size={12} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Balance panel */}
+                <div className="lg:col-span-2 card p-5 flex flex-col">
+                    <div className="flex items-center justify-between mb-5">
+                        <p className="text-sm text-2 font-medium">Available Balance</p>
+                        <button onClick={() => setHidden(!hidden)} className="btn-ghost p-1.5">
+                            {hidden ? <Eye size={14} /> : <EyeOff size={14} />}
+                        </button>
+                    </div>
+                    <motion.p key={balance} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                        className="font-mono font-bold text-3xl text-1 mb-1">
+                        {hidden ? 'Rs ••,•••' : `Rs ${balance.toLocaleString('en-IN')}`}
+                    </motion.p>
+                    <div className="flex items-center gap-1.5 mb-6">
+                        <TrendingUp size={11} className="text-green-400" />
+                        <span className="text-xs" style={{ color: '#10b981' }}>
+                            +Rs {(income - expense).toLocaleString('en-IN')} net this month
+                        </span>
+                    </div>
+                    <div className="space-y-2.5 mt-auto">
+                        <button onClick={() => setModal('add-money')} className="btn w-full justify-between py-3 text-sm">
+                            <div className="flex items-center gap-2"><ArrowDownLeft size={15} /> Add Money</div>
+                            <Plus size={13} className="opacity-70" />
+                        </button>
+                        <button onClick={() => setModal('withdraw')} className="btn-outline w-full justify-between py-3 text-sm">
+                            <div className="flex items-center gap-2"><ArrowUpRight size={15} /> Transfer / Withdraw</div>
+                            <ArrowUpRight size={13} className="opacity-70" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div className="space-y-10">
-                {/* Card Stack Visualization */}
-                {cards.length > 0 ? (
-                    <div className="relative pt-12">
-                        {/* Stack background elements */}
-                        {cards.length > 1 && (
-                            <div className="absolute inset-0 flex justify-center translate-y-4 opacity-40 scale-[0.96] pointer-events-none">
-                                <div className="w-full max-w-[420px] aspect-[1.586/1] rounded-2xl bg-card border border-border shadow-xl rotate-[-2deg]"
-                                    style={{ background: cards[(activeCard + 1) % cards.length].gradient }} />
-                            </div>
-                        )}
-                        {cards.length > 2 && (
-                            <div className="absolute inset-0 flex justify-center translate-y-8 opacity-20 scale-[0.92] pointer-events-none">
-                                <div className="w-full max-w-[420px] aspect-[1.586/1] rounded-2xl bg-card border border-border shadow-lg rotate-[1deg]"
-                                    style={{ background: cards[(activeCard + 2) % cards.length].gradient }} />
-                            </div>
-                        )}
-
-                        <div className="relative z-10">
-                            <AnimatePresence mode="wait">
-                                <motion.div key={activeCard}
-                                    initial={{ opacity: 0, x: 50, scale: 0.9 }}
-                                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                                    exit={{ opacity: 0, x: -50, scale: 0.9 }}
-                                    transition={{ duration: 0.4, ease: "circOut" }}>
-                                    <VirtualCard
-                                        card={cards[activeCard]}
-                                        active={true}
-                                        index={activeCard}
-                                        total={cards.length}
-                                        onRemove={() => {
-                                            removeCard(cards[activeCard].id);
-                                            setActiveCard(0);
-                                            showToast('Card decommissioned');
-                                        }}
-                                    />
-                                </motion.div>
-                            </AnimatePresence>
-
-                            {/* Stack Navigation Controls */}
-                            {cards.length > 1 && (
-                                <div className="absolute top-1/2 -translate-y-1/2 -left-4 sm:-left-12 flex flex-col gap-4">
-                                    <button onClick={prevCard} className="p-3 rounded-full bg-card hover:bg-card-hi border border-border shadow-xl transition-all hover:scale-110 active:scale-90">
-                                        <ChevronLeft size={20} className="text-1" />
-                                    </button>
-                                </div>
-                            )}
-                            {cards.length > 1 && (
-                                <div className="absolute top-1/2 -translate-y-1/2 -right-4 sm:-right-12 flex flex-col gap-4">
-                                    <button onClick={nextCard} className="p-3 rounded-full bg-card hover:bg-card-hi border border-border shadow-xl transition-all hover:scale-110 active:scale-90">
-                                        <ChevronRight size={20} className="text-1" />
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Pagination Selector */}
-                        <div className="mt-12 flex items-center justify-center gap-3">
-                            {cards.map((_, i) => (
-                                <button key={i} onClick={() => setActiveCard(i)}
-                                    className="h-2 rounded-full transition-all duration-500"
-                                    style={{
-                                        width: i === activeCard ? 40 : 10,
-                                        background: i === activeCard ? 'var(--purple)' : 'var(--bg-card-hi)',
-                                        opacity: i === activeCard ? 1 : 0.3
-                                    }} />
-                            ))}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="card p-16 text-center border-dashed border-[3px] border-purple-500/10 flex flex-col items-center gap-6 bg-purple-500/[0.02]">
-                        <div className="w-20 h-20 rounded-3xl bg-purple-500/5 flex items-center justify-center border border-purple-500/10">
-                            <CardIcon size={40} className="text-purple-500/30" />
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-4">
+                {[{ l: 'Total In', v: income, icon: TrendingUp, c: '#10b981' }, { l: 'Total Out', v: expense, icon: TrendingDown, c: '#ef4444' }].map((s, i) => (
+                    <motion.div key={s.l} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+                        className="card p-4 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ background: `${s.c}14`, border: `1px solid ${s.c}30` }}>
+                            <s.icon size={17} style={{ color: s.c }} />
                         </div>
                         <div>
-                            <p className="font-bold text-lg text-1 mb-1">Vault empty</p>
-                            <p className="text-xs text-3 max-w-[240px]">Integrate your first asset credential to begin institutional monitoring.</p>
+                            <p className="text-xs text-3 mb-0.5">{s.l}</p>
+                            <p className="font-bold text-xl text-1">Rs {s.v.toLocaleString('en-IN')}</p>
                         </div>
+                    </motion.div>
+                ))}
+            </div>
+
+            {/* Transactions */}
+            <div className="card p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-1 text-sm">Transaction History</h3>
+                    <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--surface-2)' }}>
+                        {(['all', 'credit', 'debit'] as const).map(f => (
+                            <button key={f} onClick={() => setFilter(f)}
+                                className="px-3 py-1 rounded-lg text-xs font-medium capitalize transition-all"
+                                style={filter === f
+                                    ? { background: 'rgba(168,85,247,0.18)', color: 'var(--purple-light)', border: '1px solid rgba(168,85,247,0.3)' }
+                                    : { color: 'var(--text-3)' }}>
+                                {f === 'credit' ? 'In' : f === 'debit' ? 'Out' : 'All'}
+                            </button>
+                        ))}
                     </div>
-                )}
-
-                {/* Main Action Button */}
-                {!isAddMode && (
-                    <motion.button
-                        layoutId="add-card-btn"
-                        onClick={() => setIsAddMode(true)}
-                        className="w-full card p-8 border-dashed border-2 hover:border-purple-500/40 hover:bg-purple-500/[0.03] transition-all flex flex-col items-center gap-4 group relative overflow-hidden"
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full group-hover:animate-shimmer" />
-                        <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform border border-purple-500/20">
-                            <Plus size={24} className="text-purple-500" />
-                        </div>
-                        <div className="text-center">
-                            <span className="font-black text-xs tracking-[0.2em] text-1 uppercase block mb-1">Integrate New Asset</span>
-                            <span className="text-[10px] text-3 uppercase font-bold opacity-60">Add credentials to secure enclave</span>
-                        </div>
-                    </motion.button>
-                )}
-
-                {/* Add Card Form */}
-                <AnimatePresence>
-                    {isAddMode && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                            className="card overflow-hidden bg-card"
-                        >
-                            <div className="p-8 sm:p-10 space-y-10">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 rounded-xl bg-purple-500/10">
-                                            <Shield size={20} className="text-purple-500" />
-                                        </div>
-                                        <h3 className="font-black text-2xl text-1 tracking-tight">Credential Sync</h3>
-                                    </div>
-                                    <button onClick={() => setIsAddMode(false)} className="p-2 hover:bg-white/5 rounded-full transition-colors"><X size={24} /></button>
+                </div>
+                <div className="space-y-2">
+                    <AnimatePresence>
+                        {filtered.map((tx, i) => (
+                            <motion.div key={tx.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
+                                transition={{ delay: i * 0.025 }}
+                                className="flex items-center gap-3 p-3.5 rounded-xl transition-all"
+                                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                                    style={{ background: tx.type === 'credit' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)' }}>
+                                    {tx.type === 'credit'
+                                        ? <ArrowDownLeft size={14} style={{ color: '#10b981' }} />
+                                        : <ArrowUpRight size={14} style={{ color: '#ef4444' }} />}
                                 </div>
-
-                                {/* Preview mini-card */}
-                                <div className="mx-auto w-full max-w-[360px] aspect-[1.586/1] relative p-6 flex flex-col justify-between rounded-2xl overflow-hidden shadow-2xl border border-white/10"
-                                    style={{ background: CARD_GRADIENTS[newCard.colorIdx] }}>
-                                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
-                                    <div className="flex justify-between items-start relative z-10">
-                                        <CardChip />
-                                        <span className="text-white font-black italic text-sm tracking-tight opacity-90">{newCard.type}</span>
-                                    </div>
-                                    <p className="text-white font-mono text-xl tracking-[0.2em] text-center my-1 relative z-10 drop-shadow-md">
-                                        {newCard.number || '•••• •••• •••• ••••'}
-                                    </p>
-                                    <div className="flex justify-between items-end relative z-10">
-                                        <div className="max-w-[170px]">
-                                            <p className="text-white/40 text-[8px] uppercase tracking-[0.3em] leading-none mb-2 font-mono">ASSET CONTROLLER</p>
-                                            <p className="text-white text-xs font-bold truncate uppercase">{newCard.holder || 'UNNAMED HOLDER'}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-white/40 text-[8px] uppercase tracking-[0.2em] leading-none mb-2 font-mono">VALID THRU</p>
-                                            <p className="text-white text-xs font-bold font-mono">{newCard.expiry || '00/00'}</p>
-                                        </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-1 truncate">{tx.description}</p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="badge text-[10px] px-2 py-0.5"
+                                            style={{ background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.15)', color: 'var(--purple-light)' }}>
+                                            {tx.category}
+                                        </span>
+                                        <span className="text-[10px] text-3 flex items-center gap-1">
+                                            <Clock size={8} />
+                                            {new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        </span>
                                     </div>
                                 </div>
+                                <p className="font-bold text-sm flex-shrink-0" style={{ color: tx.type === 'credit' ? '#10b981' : '#ef4444' }}>
+                                    {tx.type === 'credit' ? '+' : '-'}Rs {tx.amount.toLocaleString('en-IN')}
+                                </p>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                    {filtered.length === 0 && <div className="text-center py-10 text-3 text-sm">No transactions found</div>}
+                </div>
+            </div>
 
-                                {/* Form Fields */}
-                                <div className="space-y-8">
-                                    <div className="grid grid-cols-5 gap-4">
-                                        {CARD_GRADIENTS.map((g, i) => (
-                                            <button
-                                                key={i}
-                                                onClick={() => setNewCard(c => ({ ...c, colorIdx: i }))}
-                                                className={`h-11 rounded-2xl transition-all border-2 ${newCard.colorIdx === i ? 'border-purple-500 scale-105 shadow-lg shadow-purple-500/20' : 'border-transparent opacity-40 hover:opacity-100'}`}
-                                                style={{ background: g }}
-                                            />
-                                        ))}
-                                    </div>
+            {/* ── Modals ─────────────────────────── */}
+            <AnimatePresence>
+                {modal && (
+                    <>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setModal(null)} className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
+                        <motion.div initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 40 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
 
-                                    <div className="space-y-5">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                            <div>
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-3 mb-2.5 block px-1">Primary Number</label>
-                                                <input type="text" className="field font-mono text-base bg-card-hi" placeholder="4532 8821 3765 9012" maxLength={19}
-                                                    value={newCard.number} onChange={e => setNewCard(c => ({ ...c, number: formatCardNumber(e.target.value) }))} />
+                            {/* Add Money / Withdraw */}
+                            {(modal === 'add-money' || modal === 'withdraw') && (
+                                <div className="card w-full max-w-sm p-6 my-auto">
+                                    <div className="flex items-center justify-between mb-5">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.15)' }}>
+                                                {modal === 'add-money' ? <Banknote size={15} style={{ color: 'var(--purple)' }} /> : <ArrowUpRight size={15} style={{ color: 'var(--purple)' }} />}
                                             </div>
-                                            <div>
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-3 mb-2.5 block px-1">Legal Holder</label>
-                                                <input type="text" className="field bg-card-hi uppercase" placeholder="NAME AS PRINTED"
-                                                    value={newCard.holder} onChange={e => setNewCard(c => ({ ...c, holder: e.target.value.toUpperCase() }))} />
-                                            </div>
+                                            <h3 className="font-display font-bold text-1">{modal === 'add-money' ? 'Add Money' : 'Transfer / Withdraw'}</h3>
                                         </div>
-
-                                        <div className="grid grid-cols-3 gap-5">
-                                            <div>
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-3 mb-2.5 block px-1">Expiry</label>
-                                                <input type="text" className="field font-mono bg-card-hi" placeholder="MM/YY" maxLength={5}
-                                                    value={newCard.expiry} onChange={e => setNewCard(c => ({ ...c, expiry: formatExpiry(e.target.value) }))} />
-                                            </div>
-                                            <div>
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-3 mb-2.5 block px-1">CVV</label>
-                                                <input type="password" className="field font-mono bg-card-hi" placeholder="•••" maxLength={4}
-                                                    value={newCard.cvv} onChange={e => setNewCard(c => ({ ...c, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) }))} />
-                                            </div>
-                                            <div>
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-3 mb-2.5 block px-1">Type</label>
-                                                <select
-                                                    className="field text-xs h-[46px] bg-card-hi"
-                                                    value={newCard.type}
-                                                    onChange={e => setNewCard(c => ({ ...c, type: e.target.value as any }))}
-                                                >
-                                                    <option value="Visa">Visa Protocol</option>
-                                                    <option value="Mastercard">Mastercard Protocol</option>
-                                                    <option value="Amex">Amex Protocol</option>
-                                                </select>
-                                            </div>
+                                        <button onClick={() => setModal(null)} className="btn-ghost p-1.5"><X size={15} /></button>
+                                    </div>
+                                    {modal === 'add-money' && (
+                                        <div className="grid grid-cols-3 gap-2 mb-4">
+                                            {[5000, 10000, 25000, 50000, 100000, 200000].map(q => (
+                                                <button key={q} onClick={() => setAmount(String(q))}
+                                                    className="py-2 rounded-xl text-xs font-semibold transition-all"
+                                                    style={amount === String(q)
+                                                        ? { background: 'rgba(168,85,247,0.18)', border: '1px solid rgba(168,85,247,0.4)', color: 'var(--purple-light)' }
+                                                        : { background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+                                                    Rs {(q / 1000).toFixed(0)}k
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div className="space-y-3 mb-5">
+                                        <div>
+                                            <label className="text-xs text-3 mb-1.5 block">Amount (Rs)</label>
+                                            <input type="number" className="field text-lg font-bold" placeholder="0"
+                                                value={amount} onChange={e => setAmount(e.target.value)} />
+                                            {modal === 'withdraw' && <p className="text-[10px] text-3 mt-1">Available: Rs {balance.toLocaleString('en-IN')}</p>}
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-3 mb-1.5 block">Note (optional)</label>
+                                            <input type="text" className="field" placeholder={modal === 'add-money' ? 'e.g. Salary' : 'e.g. Rent payment'}
+                                                value={desc} onChange={e => setDesc(e.target.value)} />
                                         </div>
                                     </div>
-
-                                    <div className="pt-6 flex flex-col sm:flex-row gap-4">
-                                        <button className="btn-outline flex-1 py-4 font-black text-xs uppercase tracking-widest" onClick={() => setIsAddMode(false)}>Cancel Protocol</button>
-                                        <button
-                                            className="btn flex-1 py-4 gap-3 font-black text-xs uppercase tracking-widest shadow-xl shadow-purple-500/20"
-                                            disabled={!newCard.number || !newCard.holder || !newCard.expiry}
-                                            onClick={handleAddCard}
-                                        >
-                                            <Check size={20} /> Finalize Sync
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button className="btn-outline" onClick={() => setModal(null)}>Cancel</button>
+                                        <button className="btn" disabled={!amount || isSaving} onClick={handleMoneySubmit}>
+                                            {isSaving
+                                                ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.6, repeat: Infinity, ease: 'linear' }}><RefreshCw size={15} /></motion.div>
+                                                : modal === 'add-money' ? 'Add Money' : 'Confirm'}
                                         </button>
                                     </div>
                                 </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+                            )}
 
-            {/* Toast Notifications */}
+                            {/* Add Card */}
+                            {modal === 'add-card' && (
+                                <div className="card w-full max-w-sm p-6 my-auto">
+                                    <div className="flex items-center justify-between mb-5">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.15)' }}>
+                                                <CardIcon size={15} style={{ color: 'var(--purple)' }} />
+                                            </div>
+                                            <h3 className="font-display font-bold text-1">Add New Card</h3>
+                                        </div>
+                                        <button onClick={() => setModal(null)} className="btn-ghost p-1.5"><X size={15} /></button>
+                                    </div>
+
+                                    {/* Live card preview */}
+                                    <div className="mb-5 rounded-2xl overflow-hidden relative h-36"
+                                        style={{ background: CARD_GRADIENTS[newCard.colorIdx] }}>
+                                        <svg className="absolute inset-0 w-full h-full opacity-50" viewBox="0 0 320 145" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                                            <circle cx="290" cy="-20" r="110" stroke="rgba(255,255,255,0.07)" strokeWidth="1" fill="none" />
+                                            <circle cx="290" cy="-20" r="160" stroke="rgba(255,255,255,0.04)" strokeWidth="1" fill="none" />
+                                        </svg>
+                                        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 55%)' }} />
+                                        <div className="relative z-10 p-4 flex flex-col h-full">
+                                            <div className="flex justify-between items-center mb-auto">
+                                                <Wifi size={11} className="text-white/50 -rotate-90" />
+                                                <span className="text-white/70 text-xs font-bold">{newCard.type}</span>
+                                            </div>
+                                            <p className="text-white font-mono text-sm tracking-[0.2em] mb-2">
+                                                {newCard.number || '•••• •••• •••• ••••'}
+                                            </p>
+                                            <div className="flex justify-between">
+                                                <div>
+                                                    <p className="text-white/30 text-[8px] tracking-widest">CARD HOLDER</p>
+                                                    <p className="text-white text-xs font-semibold">{newCard.holder || 'FULL NAME'}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-white/30 text-[8px] tracking-widest">EXPIRES</p>
+                                                    <p className="text-white text-xs font-semibold">{newCard.expiry || 'MM/YY'}</p>
+                                                </div>
+                                                <div className="flex -space-x-2 self-end pb-0.5">
+                                                    <div className="w-6 h-6 rounded-full" style={{ background: 'rgba(220,38,38,0.7)' }} />
+                                                    <div className="w-6 h-6 rounded-full" style={{ background: 'rgba(234,179,8,0.7)' }} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Color chooser */}
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <span className="text-xs text-3">Card color:</span>
+                                        {CARD_GRADIENTS.map((g, i) => (
+                                            <button key={i} onClick={() => setNewCard(c => ({ ...c, colorIdx: i }))}
+                                                className="w-6 h-6 rounded-full transition-all"
+                                                style={{ background: g, outline: newCard.colorIdx === i ? '2px solid var(--purple)' : 'none', outlineOffset: 2 }} />
+                                        ))}
+                                    </div>
+
+                                    <div className="space-y-3 mb-5">
+                                        <div>
+                                            <label className="text-xs text-3 mb-1.5 block">Card Number</label>
+                                            <input type="text" className="field font-mono" placeholder="1234 5678 9012 3456" maxLength={19}
+                                                value={newCard.number} onChange={e => setNewCard(c => ({ ...c, number: formatCardNumber(e.target.value) }))} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-3 mb-1.5 block">Cardholder Name</label>
+                                            <input type="text" className="field" placeholder="ARJUN SHARMA"
+                                                value={newCard.holder} onChange={e => setNewCard(c => ({ ...c, holder: e.target.value.toUpperCase() }))} />
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div className="col-span-2">
+                                                <label className="text-xs text-3 mb-1.5 block">Expiry (MM/YY)</label>
+                                                <input type="text" className="field font-mono" placeholder="08/28" maxLength={5}
+                                                    value={newCard.expiry} onChange={e => setNewCard(c => ({ ...c, expiry: formatExpiry(e.target.value) }))} />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-3 mb-1.5 block">CVV</label>
+                                                <input type="password" className="field font-mono" placeholder="•••" maxLength={4}
+                                                    value={newCard.cvv} onChange={e => setNewCard(c => ({ ...c, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) }))} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-3 mb-1.5 block">Card Type</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {(['Visa', 'Mastercard'] as const).map(t => (
+                                                    <button key={t} onClick={() => setNewCard(c => ({ ...c, type: t }))}
+                                                        className="py-2.5 rounded-xl text-sm font-semibold transition-all"
+                                                        style={newCard.type === t
+                                                            ? { background: 'rgba(168,85,247,0.18)', border: '1px solid rgba(168,85,247,0.4)', color: 'var(--purple-light)' }
+                                                            : { background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text-3)' }}>
+                                                        {t}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button className="btn-outline text-sm" onClick={() => setModal(null)}>Cancel</button>
+                                        <button className="btn text-sm" onClick={handleAddCard}
+                                            disabled={!newCard.number || !newCard.holder || !newCard.expiry}>
+                                            <Plus size={14} /> Add Card
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Toast */}
             <AnimatePresence>
                 {toastMsg && (
                     <motion.div initial={{ opacity: 0, y: 20, x: '-50%' }} animate={{ opacity: 1, y: 0, x: '-50%' }} exit={{ opacity: 0, y: 20, x: '-50%' }}
-                        className="fixed bottom-10 left-1/2 z-50 flex items-center gap-3 px-8 py-4 rounded-3xl text-sm font-black text-white shadow-2xl backdrop-blur-xl border border-white/20"
-                        style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
-                        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                            <Check size={14} />
-                        </div>
-                        <span className="tracking-wide uppercase text-xs">{toastMsg}</span>
+                        className="fixed bottom-6 left-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
+                        style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', boxShadow: '0 8px 32px rgba(124,58,237,0.5)' }}>
+                        <Check size={14} /> {toastMsg}
                     </motion.div>
                 )}
             </AnimatePresence>
