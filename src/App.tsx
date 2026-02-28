@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Landing from './pages/Landing';
 import SignIn from './pages/auth/SignIn';
 import SignUp from './pages/auth/SignUp';
+import ForgotPassword from './pages/auth/ForgotPassword';
 import DashboardLayout from './layouts/DashboardLayout';
 import Overview from './pages/dashboard/Overview';
 import SpendingInsights from './pages/dashboard/SpendingInsights';
@@ -20,6 +21,9 @@ import Settings from './pages/dashboard/Settings';
 import Wallet from './pages/dashboard/Wallet';
 import Documents from './pages/dashboard/Documents';
 import Transactions from './pages/dashboard/Transactions';
+import HowItWorks from './pages/HowItWorks';
+import FAQ from './pages/FAQ';
+import Subscription from './pages/Subscription';
 
 export default function App() {
     return (
@@ -28,8 +32,12 @@ export default function App() {
                 <BrowserRouter>
                     <Routes>
                         <Route path="/" element={<Landing />} />
+                        <Route path="/how-it-works" element={<HowItWorks />} />
+                        <Route path="/faq" element={<FAQ />} />
+                        <Route path="/subscription" element={<Subscription />} />
                         <Route path="/login" element={<SignIn />} />
                         <Route path="/signup" element={<SignUp />} />
+                        <Route path="/forgot-password" element={<ForgotPassword />} />
 
                         <Route path="/dashboard" element={
                             <ProtectedRoute><DashboardLayout /></ProtectedRoute>

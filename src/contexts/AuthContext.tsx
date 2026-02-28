@@ -18,6 +18,7 @@ interface AuthCtx {
     signup: (username: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => void;
     refreshUser: () => Promise<void>;
+    addCredits: (amount: number) => void;
 }
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
@@ -26,7 +27,7 @@ const STORAGE_KEY = 'finexa_user';
 // Demo user fallback when backend is unavailable
 const DEMO_USER: UserProfile = {
     id: 0, username: 'arjun_demo', email: 'demo@finexa.ai',
-    first_name: 'Arjun', last_name: 'Sharma', ai_credits: 100000,
+    first_name: 'Arjun', last_name: 'Sharma', ai_credits: 400,
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -57,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (access && isBackendAvailable) {
                 try {
                     const u = await AuthAPI.me();
-                    setUser({ ...u, ai_credits: u.ai_credits ?? 100000 });
+                    setUser({ ...u, ai_credits: u.ai_credits ?? 400 });
                     setIsLoading(false);
                     return;
                 } catch { AuthAPI.clearTokens(); }
@@ -75,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const refreshUser = async () => {
         try {
             const u = await AuthAPI.me();
-            setUser({ ...u, ai_credits: u.ai_credits ?? 100000 });
+            setUser({ ...u, ai_credits: u.ai_credits ?? 400 });
         } catch { /* Doesn't matter */ }
     };
 
@@ -94,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (isBackendAvailable) {
                 const data = await AuthAPI.login({ email, password });
                 AuthAPI.saveTokens(data.access, data.refresh);
-                const u = { ...data.user, ai_credits: data.user.ai_credits ?? 100000 };
+                const u = { ...data.user, ai_credits: data.user.ai_credits ?? 400 };
                 setUser(u);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
                 setIsLoading(false);
@@ -123,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (isBackendAvailable) {
                 const data = await AuthAPI.register({ username, email, password, password2: password });
                 AuthAPI.saveTokens(data.tokens.access, data.tokens.refresh);
-                const u = { ...data.user, ai_credits: 100000 };
+                const u = { ...data.user, ai_credits: 400 };
                 setUser(u);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
                 setIsLoading(false);
@@ -137,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setIsLoading(false);
                 return { success: false, error: 'Email already registered' };
             }
-            const newUser: UserProfile = { id: Date.now(), username, email, first_name: username, ai_credits: 100000 };
+            const newUser: UserProfile = { id: Date.now(), username, email, first_name: username, ai_credits: 400 };
             users.push({ ...newUser, password });
             localStorage.setItem('finexa_local_users', JSON.stringify(users));
             setUser(newUser);
@@ -150,6 +151,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const addCredits = (amount: number) => {
+        setUser(prev => {
+            if (!prev) return prev;
+            const updated = { ...prev, ai_credits: (prev.ai_credits ?? 0) + amount };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+            // Also update in local users list if offline
+            const usersRaw = localStorage.getItem('finexa_local_users');
+            if (usersRaw) {
+                const users = JSON.parse(usersRaw);
+                const idx = users.findIndex((u: any) => u.id === prev.id);
+                if (idx !== -1) { users[idx] = { ...users[idx], ai_credits: updated.ai_credits }; }
+                localStorage.setItem('finexa_local_users', JSON.stringify(users));
+            }
+            return updated;
+        });
+    };
+
     const logout = () => {
         AuthAPI.logout();
         localStorage.removeItem(STORAGE_KEY);
@@ -157,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, isBackendAvailable, login, signup, logout, refreshUser }}>
+        <AuthContext.Provider value={{ user, isLoading, isBackendAvailable, login, signup, logout, refreshUser, addCredits }}>
             {children}
         </AuthContext.Provider>
     );

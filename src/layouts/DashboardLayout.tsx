@@ -200,11 +200,17 @@ export default function DashboardLayout() {
         <div className="flex flex-col h-full overflow-hidden">
             {/* Logo */}
             <div className="flex items-center gap-3 px-4 py-5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
-                <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center glow-sm"
-                    style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
-                    <TrendingUp size={15} className="text-white" />
+                <div className="relative flex-shrink-0">
+                    <div className="absolute -inset-1.5 rounded-full opacity-55"
+                        style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.5), transparent 70%)', filter: 'blur(5px)', animation: 'glowPulse 3s ease-in-out infinite' }} />
+                    <img src="/logo.png" alt="Finexa" className="relative w-8 h-8 object-contain drop-shadow-[0_0_9px_rgba(168,85,247,0.9)]" />
                 </div>
-                {!collapsed && <span className="font-display font-bold text-lg text-gradient">Finexa</span>}
+                {!collapsed && (
+                    <span className="font-display font-extrabold text-xl"
+                        style={{ background: 'linear-gradient(120deg, #ffffff 0%, #e8d5ff 50%, #c084fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', letterSpacing: '-0.01em' }}>
+                        Finexa
+                    </span>
+                )}
             </div>
 
             {/* AI Credits */}

@@ -1,9 +1,10 @@
 import { useRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useMotionValue, useSpring, useInView, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../contexts/AuthContext';
 import {
-    TrendingUp, Shield, Zap, Brain, Wallet, Target,
-    ArrowRight, Check, Star, BarChart3, Lock, Sparkles,
+    Shield, Zap, Brain, Wallet, Target, TrendingUp,
+    ArrowRight, Check, BarChart3, Lock, Sparkles,
     ChevronRight, Bot, Wifi, CreditCard, Activity,
     FileText, PieChart
 } from 'lucide-react';
@@ -54,114 +55,133 @@ function ShootingStars() {
 function HeroCard3D() {
     const rotX = useMotionValue(0);
     const rotY = useMotionValue(0);
-    const sRotX = useSpring(rotX, { stiffness: 180, damping: 20 });
-    const sRotY = useSpring(rotY, { stiffness: 180, damping: 20 });
+    const sRotX = useSpring(rotX, { stiffness: 200, damping: 22 });
+    const sRotY = useSpring(rotY, { stiffness: 200, damping: 22 });
     const ref = useRef<HTMLDivElement>(null);
 
-    const handleMouse = (e: React.MouseEvent) => {
-        const rect = ref.current?.getBoundingClientRect();
-        if (!rect) return;
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        rotX.set(((e.clientY - cy) / rect.height) * -18);
-        rotY.set(((e.clientX - cx) / rect.width) * 22);
+    const onMove = (e: React.MouseEvent) => {
+        const r = ref.current?.getBoundingClientRect();
+        if (!r) return;
+        rotX.set(((e.clientY - r.top - r.height / 2) / r.height) * -20);
+        rotY.set(((e.clientX - r.left - r.width / 2) / r.width) * 24);
     };
+    const onLeave = () => { rotX.set(0); rotY.set(0); };
+
+    /* Standard credit card: 85.6 mm × 53.98 mm ≈ 1.586 ratio */
+    const W = 375, H = 236;
 
     return (
-        <div ref={ref} onMouseMove={handleMouse}
-            onMouseLeave={() => { rotX.set(0); rotY.set(0); }}
-            style={{ perspective: 900, display: 'flex', justifyContent: 'center' }}>
+        <div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave}
+            className="relative select-none"
+            style={{ perspective: 1000, width: W, maxWidth: '100%' }}>
+
+            {/* floating stat chips */}
+            <motion.div animate={{ y: [-6, 6, -6] }} transition={{ duration: 3.5, repeat: Infinity }}
+                className="absolute -top-10 -right-6 card-glow px-3 py-2 z-20 hidden lg:flex items-center gap-2">
+                <BarChart3 size={11} style={{ color: '#10b981' }} />
+                <div><p className="text-[8px] text-3">Savings Rate</p><p className="text-xs font-bold" style={{ color: '#10b981' }}>+21.4%</p></div>
+            </motion.div>
+            <motion.div animate={{ y: [6, -6, 6] }} transition={{ duration: 4, repeat: Infinity }}
+                className="absolute -bottom-8 -left-8 card-glow px-3 py-2 z-20 hidden lg:flex items-center gap-2">
+                <Sparkles size={11} style={{ color: 'var(--purple)' }} />
+                <div><p className="text-[8px] text-3">AI Credits</p><p className="text-xs font-bold text-gradient">97.1k</p></div>
+            </motion.div>
+            <motion.div animate={{ y: [-4, 4, -4] }} transition={{ duration: 4.5, repeat: Infinity, delay: 0.5 }}
+                className="absolute top-1/2 -right-16 card-glow px-2.5 py-1.5 z-20 hidden lg:flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-[9px] font-semibold text-1">Score 74</span>
+            </motion.div>
+
+            {/* Card */}
             <motion.div style={{ rotateX: sRotX, rotateY: sRotY, transformStyle: 'preserve-3d' }}
-                className="w-full max-w-xs animate-float">
-                <div className="credit-card w-full relative" style={{ animationDuration: '6s' }}>
-                    {/* Circles */}
-                    <svg className="absolute inset-0 w-full h-full opacity-50" viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" aria-hidden>
-                        <circle cx="310" cy="-25" r="130" stroke="rgba(255,255,255,0.06)" strokeWidth="1" fill="none" />
-                        <circle cx="310" cy="-25" r="190" stroke="rgba(255,255,255,0.04)" strokeWidth="1" fill="none" />
-                        <circle cx="-15" cy="200" r="110" stroke="rgba(255,255,255,0.04)" strokeWidth="1" fill="none" />
+                animate={{ y: [-6, 6, -6] }}
+                transition={{ y: { duration: 5, repeat: Infinity, ease: 'easeInOut' } }}>
+
+                <div style={{
+                    width: '100%',
+                    aspectRatio: `${W} / ${H}`,
+                    borderRadius: 18,
+                    background: 'linear-gradient(135deg, #1a0a3a 0%, #2d1060 40%, #180836 100%)',
+                    boxShadow: '0 30px 80px rgba(124,58,237,0.5), 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                }}>
+                    {/* Background circles */}
+                    <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
+                        <circle cx={W * 0.95} cy={H * -0.1} r="120" stroke="rgba(255,255,255,0.05)" strokeWidth="1" fill="none" />
+                        <circle cx={W * 0.95} cy={H * -0.1} r="175" stroke="rgba(255,255,255,0.03)" strokeWidth="1" fill="none" />
+                        <circle cx={W * -0.05} cy={H * 1.05} r="100" stroke="rgba(255,255,255,0.04)" strokeWidth="1" fill="none" />
+                        <circle cx={W * 0.5} cy={H * 0.5} r="80" stroke="rgba(168,85,247,0.06)" strokeWidth="1" fill="none" />
                     </svg>
-                    {/* Top sheen */}
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.14) 0%, transparent 50%)' }} />
-                    {/* Holographic overlay */}
-                    <div className="absolute inset-0 opacity-20"
-                        style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.4) 0%, rgba(59,130,246,0.2) 50%, rgba(236,72,153,0.2) 100%)', animation: 'gradientShift 4s ease infinite', backgroundSize: '300% 300%' }} />
-                    {/* Animated scan line */}
+
+                    {/* Sheen */}
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, transparent 55%)' }} />
+
+                    {/* Holographic shift */}
+                    <div className="absolute inset-0 opacity-[0.18]"
+                        style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.5), rgba(59,130,246,0.3) 50%, rgba(236,72,153,0.25))', animation: 'gradientShift 5s ease infinite', backgroundSize: '300% 300%' }} />
+
+                    {/* Scan line */}
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        <motion.div className="absolute left-0 right-0 h-0.5"
-                            style={{ background: 'linear-gradient(90deg, transparent, rgba(192,132,252,0.9), rgba(255,255,255,0.6), rgba(192,132,252,0.9), transparent)' }}
-                            animate={{ y: ['0%', '280%'] }} transition={{ duration: 2.8, repeat: Infinity, ease: 'linear', repeatDelay: 1.5 }} />
+                        <motion.div className="absolute left-0 right-0 h-px"
+                            style={{ background: 'linear-gradient(90deg, transparent, rgba(192,132,252,0.85), rgba(255,255,255,0.5), rgba(192,132,252,0.85), transparent)' }}
+                            animate={{ top: ['0%', '100%'] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: 'linear', repeatDelay: 2 }} />
                     </div>
-                    <div className="relative z-10 p-6 flex flex-col h-full">
-                        {/* Top row */}
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-2">
-                                <Wifi size={12} className="text-white/50 -rotate-90" />
-                                <span className="text-white/40 text-[9px] font-mono tracking-[0.3em]">NFC</span>
-                            </div>
+
+                    {/* Purple band bottom */}
+                    <div className="absolute bottom-0 left-0 right-0 h-1"
+                        style={{ background: 'linear-gradient(90deg, #7c3aed, #a855f7, #c084fc, #a855f7, #7c3aed)' }} />
+
+                    {/* Content */}
+                    <div className="relative z-10 flex flex-col h-full" style={{ padding: '20px 24px 18px' }}>
+
+                        {/* Top row: NFC + VISA */}
+                        <div className="flex items-center justify-between mb-auto">
                             <div className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'rgba(168,85,247,0.9)' }} />
-                                <span className="text-white/60 text-[10px] font-bold tracking-widest">VISA</span>
+                                <Wifi size={14} className="text-white/40 -rotate-90" />
+                                <span className="text-white/35 text-[9px] font-mono tracking-[0.35em]">NFC</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full" style={{ background: 'rgba(168,85,247,0.9)', boxShadow: '0 0 8px rgba(168,85,247,0.8)' }} />
+                                <span className="text-white/70 text-[11px] font-black tracking-[0.3em]">FINEXA</span>
                             </div>
                         </div>
+
                         {/* Chip */}
-                        <div className="mb-5">
-                            <div className="w-9 h-7 rounded-md mb-5" style={{
-                                background: 'linear-gradient(135deg, #d4a843 0%, #f5d17a 30%, #c49232 60%, #e8c06a 100%)',
-                                boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.3)',
+                        <div className="mt-3 mb-4">
+                            <div style={{
+                                width: 42, height: 32, borderRadius: 6,
+                                background: 'linear-gradient(135deg, #c8943a 0%, #f0c868 30%, #b87c28 60%, #deb454 100%)',
+                                boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.35), inset -1px -1px 2px rgba(0,0,0,0.2)',
                             }}>
-                                <div className="w-full h-full rounded-md" style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px)' }} />
+                                <div className="w-full h-full rounded-md" style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px)', borderRadius: 6 }} />
                             </div>
-                            <p className="text-white/25 text-[8px] mb-1 font-mono tracking-[0.25em]">CARD NUMBER</p>
-                            <p className="text-white font-mono text-base tracking-[0.22em] drop-shadow-sm">4532 8821 •••• 4231</p>
                         </div>
-                        {/* Bottom */}
-                        <div className="flex items-end justify-between mt-auto">
+
+                        {/* Card number */}
+                        <div className="mb-5">
+                            <p className="text-white/20 text-[7px] mb-1 font-mono tracking-[0.3em]">CARD NUMBER</p>
+                            <p className="text-white font-mono tracking-[0.2em] drop-shadow-sm" style={{ fontSize: 15 }}>4532 8821 •••• 4231</p>
+                        </div>
+
+                        {/* Bottom: holder + expiry + mastercard circles */}
+                        <div className="flex items-end justify-between">
                             <div>
-                                <p className="text-white/25 text-[7px] tracking-[0.25em] mb-0.5">CARD HOLDER</p>
-                                <p className="text-white text-xs font-semibold tracking-wider">ARJUN SHARMA</p>
+                                <p className="text-white/20 text-[7px] tracking-[0.3em] mb-0.5">CARD HOLDER</p>
+                                <p className="text-white text-xs font-semibold tracking-widest">SUKHADA JOSHI</p>
                             </div>
-                            <div>
-                                <p className="text-white/25 text-[7px] tracking-[0.25em] mb-0.5">EXPIRES</p>
+                            <div className="text-center">
+                                <p className="text-white/20 text-[7px] tracking-[0.3em] mb-0.5">EXPIRES</p>
                                 <p className="text-white text-xs font-semibold">08 / 28</p>
                             </div>
-                            <div className="flex -space-x-2.5">
-                                <div className="w-8 h-8 rounded-full" style={{ background: 'rgba(220,38,38,0.75)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} />
-                                <div className="w-8 h-8 rounded-full" style={{ background: 'rgba(234,179,8,0.75)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} />
+                            <div className="flex -space-x-3">
+                                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(220,38,38,0.7)', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }} />
+                                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(234,179,8,0.7)', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }} />
                             </div>
                         </div>
                     </div>
                 </div>
-
-                {/* Floating chips around the card */}
-                <motion.div animate={{ y: [-5, 5, -5] }} transition={{ duration: 3.5, repeat: Infinity }}
-                    className="absolute -top-6 -right-8 card-glow px-3.5 py-2.5 hidden lg:block">
-                    <div className="flex items-center gap-2">
-                        <BarChart3 size={12} style={{ color: '#10b981' }} />
-                        <div>
-                            <p className="text-[9px] text-3">Savings Rate</p>
-                            <p className="text-sm font-bold" style={{ color: '#10b981' }}>+21.4%</p>
-                        </div>
-                    </div>
-                </motion.div>
-
-                <motion.div animate={{ y: [5, -5, 5] }} transition={{ duration: 4, repeat: Infinity }}
-                    className="absolute -bottom-5 -left-10 card-glow px-3.5 py-2.5 hidden lg:block">
-                    <div className="flex items-center gap-2">
-                        <Sparkles size={12} style={{ color: 'var(--purple)' }} />
-                        <div>
-                            <p className="text-[9px] text-3">AI Credits</p>
-                            <p className="text-sm font-bold text-gradient">97.1k</p>
-                        </div>
-                    </div>
-                </motion.div>
-
-                <motion.div animate={{ y: [-4, 4, -4] }} transition={{ duration: 4.5, repeat: Infinity, delay: 0.5 }}
-                    className="absolute top-1/2 -right-14 card-glow px-3 py-2 hidden lg:block">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                        <span className="text-[10px] font-semibold text-1">Score 74</span>
-                    </div>
-                </motion.div>
             </motion.div>
         </div>
     );
@@ -177,14 +197,11 @@ const FEATURES = [
     { icon: Wallet, title: 'Digital Wallet', desc: 'Virtual cards, balance management, and full transaction history.' },
 ];
 
-const TESTIMONIALS = [
-    { name: 'Priya M.', role: 'Software Engineer', text: 'Found Rs 18k/month in wasted subscriptions. The AI coach alone changed how I manage money.', r: 5 },
-    { name: 'Rohit K.', role: 'Freelancer', text: 'The income drop simulator changed how I plan for slow months. Nothing comes close.', r: 5 },
-    { name: 'Ananya S.', role: 'Marketing Manager', text: 'ELI-15 mode explains every financial concept so clearly. Finally understand my money.', r: 5 },
-];
+
 
 /* ════════════ MAIN PAGE ════════════ */
 export default function Landing() {
+    const { user } = useAuth();
     const [scrolled, setScrolled] = useState(false);
     useEffect(() => {
         const f = () => setScrolled(window.scrollY > 30);
@@ -206,129 +223,151 @@ export default function Landing() {
                     transition: 'all 0.4s ease',
                 }}>
                 {/* Logo LEFT */}
-                <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
+                <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
                     <div className="relative">
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center glow-sm"
-                            style={{ background: 'linear-gradient(135deg, #6d28d9, #a855f7)' }}>
-                            <TrendingUp size={14} className="text-white" />
-                        </div>
-                        <div className="absolute -inset-0.5 rounded-xl opacity-0 hover:opacity-100 transition-opacity"
-                            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', filter: 'blur(6px)', zIndex: -1 }} />
+                        <div className="absolute -inset-1.5 rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-300"
+                            style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.55), transparent 70%)', filter: 'blur(6px)', animation: 'glowPulse 3s ease-in-out infinite' }} />
+                        <img src="/logo.png" alt="Finexa" className="relative w-9 h-9 object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.9)]" />
                     </div>
-                    <span className="font-display font-bold text-lg" style={{ color: '#fff' }}>finexa</span>
+                    <span className="font-display font-extrabold text-xl" style={{ background: 'linear-gradient(120deg,#fff 0%,#e8d5ff 50%,#c084fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', letterSpacing: '-0.01em' }}>Finexa</span>
                 </Link>
 
                 {/* Nav RIGHT */}
                 <div className="flex items-center gap-5 md:gap-7 ml-auto">
                     <div className="hidden md:flex items-center gap-6">
-                        {[['Features', '#features'], ['How It Works', '#how'], ['Reviews', '#reviews']].map(([label, href]) => (
-                            <a key={label} href={href}
-                                className="text-sm font-medium transition-all duration-200"
-                                style={{ color: 'rgba(200,190,255,0.6)' }}
-                                onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(200,190,255,0.6)')}>
-                                {label}
-                            </a>
+                        {[['How It Works', '/how-it-works', false], ['Subscription', '/subscription', false], ['FAQ', '/faq', false]].map(([label, href, isHash]) => (
+                            isHash
+                                ? <a key={String(label)} href={String(href)} className="text-sm font-medium transition-all duration-200" style={{ color: 'rgba(200,190,255,0.6)' }} onMouseEnter={e => (e.currentTarget.style.color = '#fff')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(200,190,255,0.6)')}>{label}</a>
+                                : <Link key={String(label)} to={String(href)} className="text-sm font-medium transition-all duration-200" style={{ color: 'rgba(200,190,255,0.6)' }} onMouseEnter={e => (e.currentTarget.style.color = '#fff')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(200,190,255,0.6)')}>{label}</Link>
                         ))}
                     </div>
+                    {/* Credits + Score pills — only when logged in */}
+                    {user && (
+                        <div className="hidden lg:flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium"
+                                style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: 'rgba(245,158,11,0.85)' }}>
+                                <Zap size={9} style={{ color: '#f59e0b' }} />
+                                {user.ai_credits != null
+                                    ? user.ai_credits >= 1000
+                                        ? `${(user.ai_credits / 1000).toFixed(1)}k credits`
+                                        : `${user.ai_credits} credits`
+                                    : '100k credits'}
+                            </div>
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium"
+                                style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', color: 'rgba(16,185,129,0.85)' }}>
+                                <TrendingUp size={9} style={{ color: '#10b981' }} />
+                                Score 78
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Action buttons — auth-aware */}
                     <div className="flex items-center gap-2.5">
-                        <Link to="/login"
-                            className="hidden sm:inline-block text-sm font-medium px-4 py-2 rounded-xl transition-all"
-                            style={{ color: 'rgba(200,190,255,0.7)', border: '1px solid rgba(168,85,247,0.18)', background: 'rgba(168,85,247,0.05)' }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.color = '#fff'; }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.color = 'rgba(200,190,255,0.7)'; }}>
-                            Sign In
-                        </Link>
-                        <Link to="/signup" className="btn text-sm px-4 py-2.5">
-                            Get Started <ArrowRight size={14} />
-                        </Link>
+                        {user ? (
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+                                <Link to="/dashboard" className="btn text-sm px-5 py-2.5">
+                                    Dashboard <ArrowRight size={14} />
+                                </Link>
+                            </motion.div>
+                        ) : (
+                            <Link to="/signup" className="btn text-sm px-5 py-2.5">
+                                Get Started <ArrowRight size={14} />
+                            </Link>
+                        )}
                     </div>
                 </div>
             </motion.nav>
 
-            {/* ═══ HERO ═══ */}
-            <section className="relative min-h-screen flex items-center overflow-hidden grid-bg-dense pt-16">
-                {/* Orbs */}
-                <Orb size={600} x="30%" y="-10%" color="radial-gradient(circle, rgba(124,58,237,0.25), transparent 70%)" blur={80} delay={0} />
-                <Orb size={400} x="65%" y="20%" color="radial-gradient(circle, rgba(168,85,247,0.15), transparent 70%)" blur={60} delay={2} />
-                <Orb size={300} x="10%" y="60%" color="radial-gradient(circle, rgba(76,29,149,0.2), transparent 70%)" blur={50} delay={1.5} />
-                <Orb size={200} x="80%" y="70%" color="radial-gradient(circle, rgba(192,132,252,0.1), transparent 70%)" blur={40} delay={3} />
-
-                {/* Shooting stars */}
+            {/* ═══ HERO ═══ — fits exactly one viewport */}
+            <section className="relative h-screen flex items-center overflow-hidden grid-bg-dense" style={{ paddingTop: 64 }}>
+                <Orb size={700} x="50%" y="-5%" color="radial-gradient(circle, rgba(124,58,237,0.22), transparent 70%)" blur={100} delay={0} />
+                <Orb size={380} x="10%" y="55%" color="radial-gradient(circle, rgba(168,85,247,0.13), transparent 70%)" blur={60} delay={2} />
+                <Orb size={320} x="80%" y="50%" color="radial-gradient(circle, rgba(76,29,149,0.16), transparent 70%)" blur={55} delay={1.5} />
                 <ShootingStars />
 
-                {/* Decorative sparkles */}
-                {[[-5, 22], [85, 10], [8, 72], [91, 55], [50, 6], [72, 80], [20, 90]].map(([x, y], i) => (
+                {/* Pulsing spark glyphs — sides only */}
+                {[[-5, 22], [8, 72], [91, 55]].map(([x, y], i) => (
                     <motion.div key={i} className="absolute pointer-events-none select-none"
-                        style={{ left: `${x}%`, top: `${y}%`, color: 'rgba(168,85,247,0.25)', fontSize: i % 2 === 0 ? 14 : 10 }}
-                        animate={{ opacity: [0.1, 0.5, 0.1], scale: [1, 1.4, 1], rotate: [0, 180, 360] }}
-                        transition={{ duration: 4 + i * 0.7, repeat: Infinity, delay: i * 0.5 }}>✦</motion.div>
+                        style={{ left: `${x}%`, top: `${y}%`, color: 'rgba(168,85,247,0.2)', fontSize: i % 2 === 0 ? 12 : 8 }}
+                        animate={{ opacity: [0.1, 0.4, 0.1], scale: [1, 1.35, 1], rotate: [0, 180, 360] }}
+                        transition={{ duration: 5 + i * 0.7, repeat: Infinity, delay: i * 0.5 }}>✦</motion.div>
                 ))}
 
-                <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 py-20 w-full">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
+                <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-12">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
 
                         {/* LEFT — text */}
                         <div>
-                            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-                                className="badge inline-flex mb-6 gap-2 text-[11px]">
-                                <Sparkles size={11} /> AI-Powered Financial Intelligence
+                            <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+                                className="inline-flex items-center gap-2 mb-5 px-3.5 py-1.5 rounded-full text-[11px] font-semibold"
+                                style={{ background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(168,85,247,0.28)', color: 'rgba(192,132,252,0.9)' }}>
+                                <motion.span animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }} transition={{ duration: 2, repeat: Infinity }}
+                                    className="w-1.5 h-1.5 rounded-full" style={{ background: '#a855f7', boxShadow: '0 0 6px #a855f7' }} />
+                                <Sparkles size={10} /> AI-Powered Financial Intelligence
                             </motion.div>
 
-                            <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.7 }}
-                                className="font-display font-black leading-[1.05] mb-6"
-                                style={{ fontSize: 'clamp(2.8rem, 6vw, 4.5rem)' }}>
-                                <span className="text-gradient-hero">Your Financial</span>
-                                <br />
-                                <span style={{ color: '#ffffff' }}>Future,</span>
-                                <br />
-                                <span className="text-gradient">Simplified.</span>
-                            </motion.h1>
+                            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }} className="mb-5">
+                                <h1 className="font-display font-black leading-[1.05]"
+                                    style={{ fontSize: 'clamp(2.6rem,5.5vw,4.2rem)', textShadow: '0 0 80px rgba(168,85,247,0.2)' }}>
+                                    <span className="text-gradient-hero">Your Financial</span><br />
+                                    <span style={{ color: '#fff' }}>Future, </span>
+                                    <span className="text-gradient relative inline-block">
+                                        Simplified.
+                                    </span>
+                                </h1>
+                            </motion.div>
 
-                            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}
-                                className="text-base md:text-lg leading-relaxed mb-8 max-w-xl"
-                                style={{ color: 'rgba(200,190,255,0.65)' }}>
-                                A privacy-first AI coaching platform — with real-time health scoring, smart budgeting, risk simulations,
-                                a digital wallet, and 100,000 free AI credits from day one.
+                            <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.55 }}
+                                className="text-base leading-relaxed mb-7 max-w-lg"
+                                style={{ color: 'rgba(200,190,255,0.6)' }}>
+                                Privacy-first AI coaching — health scoring, smart budgeting, risk simulations,
+                                digital wallet &amp; <span style={{ color: 'rgba(192,132,252,0.9)', fontWeight: 600 }}>100k free AI credits</span>.
                             </motion.p>
 
-                            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                                className="flex flex-wrap gap-3 mb-10">
-                                <Link to="/signup" className="btn text-base px-7 py-3.5">
-                                    Start Free — 100k Credits <ArrowRight size={17} />
-                                </Link>
-                                <a href="#features" className="btn-outline text-base px-7 py-3.5">
-                                    Explore Features <ChevronRight size={17} />
-                                </a>
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+                                className="flex flex-wrap gap-3 mb-7">
+                                <Link to="/signup" className="btn text-sm px-7 py-3">Start Free — 100k Credits <ArrowRight size={15} /></Link>
+                                <a href="#features" className="btn-outline text-sm px-7 py-3">Explore <ChevronRight size={15} /></a>
                             </motion.div>
 
-                            {/* Trust row */}
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-                                className="flex flex-wrap gap-5">
-                                {[{ i: Lock, t: 'Bank-grade privacy' }, { i: Shield, t: 'Zero data selling' }, { i: Zap, t: 'No credit card' }].map(b => (
-                                    <div key={b.t} className="flex items-center gap-2 text-xs" style={{ color: 'rgba(168,85,247,0.7)' }}>
-                                        <b.i size={12} style={{ color: 'var(--purple)' }} /> {b.t}
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.42 }}
+                                className="flex flex-wrap gap-4">
+                                {[{ i: Lock, t: 'Bank-grade privacy' }, { i: Shield, t: 'No data selling' }, { i: Zap, t: 'No credit card' }].map(b => (
+                                    <div key={b.t} className="flex items-center gap-1.5 text-xs" style={{ color: 'rgba(168,85,247,0.65)' }}>
+                                        <b.i size={11} style={{ color: 'var(--purple)' }} />{b.t}
                                     </div>
                                 ))}
                             </motion.div>
                         </div>
 
-                        {/* RIGHT — 3D credit card */}
-                        <motion.div initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.9, type: 'spring' }}
-                            className="relative px-8 lg:px-4">
-                            {/* Glow behind card */}
-                            <div className="absolute inset-0 -z-10"
-                                style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(124,58,237,0.35), transparent)', filter: 'blur(40px)' }} />
-                            <HeroCard3D />
+                        {/* RIGHT — 3D card */}
+                        <motion.div initial={{ opacity: 0, x: 50, scale: 0.93 }} animate={{ opacity: 1, x: 0, scale: 1 }}
+                            transition={{ delay: 0.35, duration: 0.9, type: 'spring', stiffness: 75 }}
+                            className="flex justify-center items-center">
+                            <div className="relative">
+                                <div className="absolute -inset-16 pointer-events-none"
+                                    style={{ background: 'radial-gradient(ellipse 75% 65% at 50% 50%, rgba(124,58,237,0.38), transparent)', filter: 'blur(40px)' }} />
+                                <HeroCard3D />
+                            </div>
                         </motion.div>
 
                     </div>
                 </div>
 
-                {/* Bottom fade */}
-                <div className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-                    style={{ background: 'linear-gradient(0deg, var(--bg), transparent)' }} />
+                {/* Scroll indicator */}
+                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+                    <motion.div animate={{ y: [0, 8, 0], opacity: [0.4, 0.9, 0.4] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                        className="flex flex-col items-center gap-1">
+                        <div className="w-px h-7" style={{ background: 'linear-gradient(180deg,transparent,rgba(168,85,247,0.6),transparent)' }} />
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'rgba(168,85,247,0.7)' }} />
+                    </motion.div>
+                </div>
+
+                <div className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
+                    style={{ background: 'linear-gradient(0deg,var(--bg),transparent)' }} />
             </section>
+
 
             {/* ═══ STATS BAR ═══ */}
             <div className="relative py-12 overflow-hidden" style={{ background: 'rgba(10,8,25,0.98)', borderTop: '1px solid rgba(168,85,247,0.15)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
@@ -383,6 +422,131 @@ export default function Landing() {
                                     <h3 className="font-semibold text-sm text-1 mb-1.5">{f.title}</h3>
                                     <p className="text-xs leading-relaxed" style={{ color: 'rgba(160,148,210,0.55)' }}>{f.desc}</p>
                                 </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ═══ CAPABILITIES STRIP ═══ */}
+            <section className="relative py-16 overflow-hidden"
+                style={{ background: 'linear-gradient(180deg,rgba(6,3,16,1) 0%,rgba(14,8,35,1) 50%,rgba(6,3,16,1) 100%)' }}>
+                <div className="absolute inset-0 pointer-events-none"
+                    style={{ background: 'radial-gradient(ellipse 60% 80% at 50% 50%, rgba(124,58,237,0.08), transparent)' }} />
+
+                <motion.div className="text-center mb-10 px-6"
+                    initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                    <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-2" style={{ color: 'rgba(168,85,247,0.5)' }}>All Inside Finexa</p>
+                    <h2 className="font-display font-black text-white" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.4rem)' }}>
+                        Powerful features. <span className="text-gradient">Total control.</span>
+                    </h2>
+                </motion.div>
+
+                <div className="absolute left-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
+                    style={{ background: 'linear-gradient(90deg,rgba(6,3,16,1),transparent)' }} />
+                <div className="absolute right-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
+                    style={{ background: 'linear-gradient(270deg,rgba(6,3,16,1),transparent)' }} />
+
+                {/* Row 1 — left */}
+                <div className="relative mb-4 overflow-hidden">
+                    <motion.div animate={{ x: ['0%', '-50%'] }} transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+                        className="flex gap-4 w-max pl-4">
+                        {[
+                            { icon: Brain, label: 'AI Document Analysis', color: '#a855f7' },
+                            { icon: TrendingUp, label: 'Health Score 0–100', color: '#10b981' },
+                            { icon: Target, label: 'Smart Goals Tracker', color: '#7c3aed' },
+                            { icon: Shield, label: 'Risk Simulator', color: '#8b5cf6' },
+                            { icon: BarChart3, label: 'Real-time Score', color: '#c084fc' },
+                            { icon: Zap, label: 'Instant Analysis', color: '#f59e0b' },
+                            // duplicate for seamless loop
+                            { icon: Brain, label: 'AI Document Analysis_', color: '#a855f7' },
+                            { icon: TrendingUp, label: 'Health Score 0–1002', color: '#10b981' },
+                            { icon: Target, label: 'Smart Goals Tracker_', color: '#7c3aed' },
+                            { icon: Shield, label: 'Risk Simulator_', color: '#8b5cf6' },
+                            { icon: BarChart3, label: 'Real-time Score_', color: '#c084fc' },
+                            { icon: Zap, label: 'Instant Analysis_', color: '#f59e0b' },
+                        ].map(f => (
+                            <div key={f.label} className="flex items-center gap-3 px-5 py-3 rounded-2xl flex-shrink-0"
+                                style={{ background: `linear-gradient(135deg,${f.color}12,${f.color}06)`, border: `1px solid ${f.color}30`, boxShadow: `0 4px 24px ${f.color}12` }}>
+                                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                                    style={{ background: `${f.color}18`, border: `1px solid ${f.color}35` }}>
+                                    <f.icon size={15} style={{ color: f.color }} />
+                                </div>
+                                <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'rgba(220,210,255,0.8)' }}>{f.label.replace(/_/g, '').replace(/2$/, '')}</span>
+                            </div>
+                        ))}
+                    </motion.div>
+                </div>
+
+                {/* Row 2 — right */}
+                <div className="relative overflow-hidden">
+                    <motion.div animate={{ x: ['-50%', '0%'] }} transition={{ duration: 28, repeat: Infinity, ease: 'linear' }}
+                        className="flex gap-4 w-max pl-4">
+                        {[
+                            { icon: Wallet, label: 'Digital Wallet', color: '#c084fc' },
+                            { icon: Zap, label: '100k Free AI Credits', color: '#f59e0b' },
+                            { icon: Bot, label: 'AI Financial Coach', color: '#a855f7' },
+                            { icon: BarChart3, label: 'Spending Insights', color: '#10b981' },
+                            { icon: Shield, label: 'Risk Simulation', color: '#8b5cf6' },
+                            { icon: PieChart, label: 'Anomaly Detection', color: '#7c3aed' },
+                            // duplicate for seamless loop
+                            { icon: Wallet, label: 'Digital Wallet_', color: '#c084fc' },
+                            { icon: Zap, label: '100k Free AI Credits_', color: '#f59e0b' },
+                            { icon: Bot, label: 'AI Financial Coach_', color: '#a855f7' },
+                            { icon: BarChart3, label: 'Spending Insights_', color: '#10b981' },
+                            { icon: Shield, label: 'Risk Simulation_', color: '#8b5cf6' },
+                            { icon: PieChart, label: 'Anomaly Detection_', color: '#7c3aed' },
+                        ].map(f => (
+                            <div key={f.label} className="flex items-center gap-3 px-5 py-3 rounded-2xl flex-shrink-0"
+                                style={{ background: `linear-gradient(135deg,${f.color}12,${f.color}06)`, border: `1px solid ${f.color}30`, boxShadow: `0 4px 24px ${f.color}12` }}>
+                                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                                    style={{ background: `${f.color}18`, border: `1px solid ${f.color}35` }}>
+                                    <f.icon size={15} style={{ color: f.color }} />
+                                </div>
+                                <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'rgba(220,210,255,0.8)' }}>{f.label.replace(/_/g, '')}</span>
+                            </div>
+                        ))}
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* ═══ HOW IT WORKS — 3 STEPS ═══ */}
+            <section className="py-24 relative overflow-hidden"
+                style={{ background: 'linear-gradient(180deg, #0a0618 0%, #130940 50%, #0a0618 100%)' }}>
+                <div className="absolute inset-0 grid-bg opacity-20 pointer-events-none" />
+                <Orb size={600} x="50%" y="50%" color="radial-gradient(circle, rgba(124,58,237,0.22), transparent 65%)" blur={100} delay={0} />
+
+                <div className="relative max-w-6xl mx-auto px-6 text-center">
+                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+                        <div className="badge inline-flex mb-5">How It Works</div>
+                        <h2 className="font-display font-black text-1 mb-4" style={{ fontSize: 'clamp(2rem,5vw,3.2rem)' }}>
+                            Start in <span className="text-gradient">3 Simple Steps</span>
+                        </h2>
+                        <p className="text-base max-w-xl mx-auto mb-14" style={{ color: 'rgba(200,190,255,0.55)' }}>
+                            From sign-up to full financial clarity in minutes — no complexity, no jargon.
+                        </p>
+                    </motion.div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[
+                            { n: '01', icon: FileText, title: 'Upload Statement', desc: 'Drop any bank statement PDF — AI extracts and structures your entire financial history instantly.' },
+                            { n: '02', icon: Brain, title: 'Get AI Insights', desc: 'Receive a health score, spending personality, anomalies, and personalised recommendations.' },
+                            { n: '03', icon: TrendingUp, title: 'Build Better Habits', desc: 'Follow habit challenges, chat with your AI coach, and hit every savings goal you set.' },
+                        ].map((s, i) => (
+                            <motion.div key={s.n} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }} transition={{ delay: i * 0.13 }}
+                                className="card hover-lift p-7 text-center">
+                                <div className="relative inline-flex mb-6">
+                                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                                        style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.27)' }}>
+                                        <s.icon size={22} style={{ color: 'var(--purple)' }} />
+                                    </div>
+                                    <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                                        style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)' }}>{parseInt(s.n)}</span>
+                                </div>
+                                <h3 className="font-bold text-1 mb-2">{s.title}</h3>
+                                <p className="text-sm leading-relaxed" style={{ color: 'rgba(160,148,210,0.55)' }}>{s.desc}</p>
                             </motion.div>
                         ))}
                     </div>
@@ -446,89 +610,93 @@ export default function Landing() {
                 </div>
             </section>
 
-            {/* ═══ PERFORMANCE — full purple section ═══ */}
-            <section id="how" className="py-24 relative overflow-hidden"
-                style={{ background: 'linear-gradient(180deg, #0a0618 0%, #150a40 50%, #0a0618 100%)' }}>
+
+
+            {/* ═══ CREDITS PRICING ═══ */}
+            <section id="subscribe" className="py-24 px-6 relative overflow-hidden">
                 <div className="absolute inset-0 grid-bg opacity-20 pointer-events-none" />
-                <Orb size={700} x="50%" y="50%" color="radial-gradient(circle, rgba(124,58,237,0.28), transparent 65%)" blur={100} delay={0} />
+                <Orb size={700} x="50%" y="50%" color="radial-gradient(circle, rgba(124,58,237,0.2), transparent 65%)" blur={100} delay={0} />
 
-                <div className="relative max-w-6xl mx-auto px-6 text-center">
-                    <div className="badge inline-flex mb-5">How It Works</div>
-                    <h2 className="font-display font-black text-1 mb-4" style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>
-                        Start in <span className="text-gradient">3 Simple Steps</span>
-                    </h2>
-                    <p className="text-base max-w-xl mx-auto mb-14" style={{ color: 'rgba(200,190,255,0.55)' }}>
-                        From sign-up to full financial clarity in minutes — no complexity, no jargon.
-                    </p>
+                <div className="relative max-w-6xl mx-auto">
+                    <motion.div className="text-center mb-14" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+                        <div className="badge inline-flex mb-5"><Sparkles size={11} /> AI Credits</div>
+                        <h2 className="font-display font-black text-1 leading-tight mb-4" style={{ fontSize: 'clamp(2rem,5vw,3.4rem)' }}>
+                            Power Up Your <span className="text-gradient">AI Coach.</span>
+                        </h2>
+                        <p className="text-base max-w-lg mx-auto" style={{ color: 'rgba(200,190,255,0.55)' }}>
+                            Every account starts with 100,000 free credits. Need more? Top up anytime — no subscription needed.
+                        </p>
+                    </motion.div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                         {[
-                            { n: '01', icon: FileText, title: 'Upload Statement', desc: 'Drop any bank statement PDF — AI extracts and structures your entire financial history instantly.' },
-                            { n: '02', icon: Brain, title: 'Get AI Insights', desc: 'Receive a health score, spending personality, anomalies, and personalised recommendations.' },
-                            { n: '03', icon: TrendingUp, title: 'Build Better Habits', desc: 'Follow habit challenges, chat with your AI coach, and hit every savings goal you set.' },
-                        ].map((s, i) => (
-                            <motion.div key={s.n} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }} transition={{ delay: i * 0.13 }}
-                                className="card hover-lift p-7 text-center">
-                                <div className="relative inline-flex mb-6">
-                                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                                        style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.27)' }}>
-                                        <s.icon size={22} style={{ color: 'var(--purple)' }} />
+                            { label: 'Starter', credits: '50,000', price: '₹199', per: '≈ 500 AI messages', color: '#7c3aed', features: ['AI Coach chats', 'Document analysis', 'Goal tracking', 'Priority support'], popular: false },
+                            { label: 'Pro', credits: '200,000', price: '₹599', per: '≈ 2,000 AI messages', color: '#a855f7', features: ['Everything in Starter', 'Income simulations', 'Risk scenarios', 'Advanced insights', 'Habit AI suggestions'], popular: true },
+                            { label: 'Elite', credits: '500,000', price: '₹1,299', per: '≈ 5,000 AI messages', color: '#c084fc', features: ['Everything in Pro', 'Unlimited document uploads', 'Priority AI queue', 'Custom financial reports', 'Early feature access'], popular: false },
+                        ].map((plan, i) => (
+                            <motion.div key={plan.label}
+                                initial={{ opacity: 0, y: 30, scale: 0.96 }} whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                                viewport={{ once: true }} transition={{ delay: i * 0.12, duration: 0.5 }}
+                                whileHover={{ y: -4, boxShadow: plan.popular ? '0 32px 80px rgba(168,85,247,0.35)' : '0 20px 60px rgba(124,58,237,0.2)' }}
+                                className="relative flex flex-col rounded-2xl overflow-hidden"
+                                style={{
+                                    background: plan.popular ? 'linear-gradient(145deg,#1a0845,#2d1060,#1a0845)' : 'rgba(12,8,30,0.95)',
+                                    border: `1px solid ${plan.popular ? 'rgba(168,85,247,0.45)' : 'rgba(168,85,247,0.15)'}`,
+                                    boxShadow: plan.popular ? '0 24px 60px rgba(124,58,237,0.3)' : '0 8px 30px rgba(0,0,0,0.4)',
+                                }}>
+
+                                {/* Top accent */}
+                                <div style={{ height: 2, background: `linear-gradient(90deg,transparent,${plan.color},transparent)` }} />
+
+                                {plan.popular && (
+                                    <div className="absolute top-4 right-4">
+                                        <motion.span animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }}
+                                            className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                                            style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', letterSpacing: '0.05em' }}>
+                                            MOST POPULAR
+                                        </motion.span>
                                     </div>
-                                    <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                                        style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>{parseInt(s.n)}</span>
+                                )}
+
+                                <div className="p-7 flex flex-col flex-1">
+                                    <p className="text-xs font-semibold tracking-widest mb-3" style={{ color: plan.color }}>{plan.label.toUpperCase()}</p>
+                                    <div className="mb-1">
+                                        <span className="font-display font-black text-4xl text-white">{plan.price}</span>
+                                        <span className="text-sm ml-1" style={{ color: 'rgba(180,165,230,0.45)' }}>one-time</span>
+                                    </div>
+                                    <p className="text-sm font-semibold mb-1" style={{ color: plan.color }}>{plan.credits} credits</p>
+                                    <p className="text-xs mb-6" style={{ color: 'rgba(160,148,210,0.45)' }}>{plan.per}</p>
+
+                                    <ul className="space-y-2.5 mb-8 flex-1">
+                                        {plan.features.map(f => (
+                                            <li key={f} className="flex items-center gap-2.5 text-sm" style={{ color: 'rgba(200,190,255,0.7)' }}>
+                                                <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                                                    style={{ background: `${plan.color}20`, border: `1px solid ${plan.color}40` }}>
+                                                    <Check size={9} style={{ color: plan.color }} />
+                                                </div>
+                                                {f}
+                                            </li>
+                                        ))}
+                                    </ul>
+
+                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                                        className="w-full py-3 rounded-xl text-sm font-semibold relative overflow-hidden group"
+                                        style={plan.popular
+                                            ? { background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', boxShadow: '0 8px 24px rgba(124,58,237,0.4)' }
+                                            : { background: 'rgba(168,85,247,0.08)', color: 'rgba(192,132,252,0.9)', border: '1px solid rgba(168,85,247,0.25)' }}>
+                                        <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none"
+                                            style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent)' }} />
+                                        Buy {plan.credits} Credits
+                                    </motion.button>
                                 </div>
-                                <h3 className="font-bold text-1 mb-2">{s.title}</h3>
-                                <p className="text-sm leading-relaxed" style={{ color: 'rgba(160,148,210,0.55)' }}>{s.desc}</p>
                             </motion.div>
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {[
-                            { icon: BarChart3, title: 'Real-time Score', c: '#a855f7' },
-                            { icon: Zap, title: 'Instant Analysis', c: '#7c3aed' },
-                            { icon: Shield, title: 'Risk Simulation', c: '#8b5cf6' },
-                            { icon: PieChart, title: 'Anomaly Detection', c: '#c084fc' },
-                        ].map((f, i) => (
-                            <motion.div key={f.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                                className="card-white hover-lift p-5 text-center">
-                                <div className="w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center"
-                                    style={{ background: `${f.c}1a`, border: `1px solid ${f.c}30` }}>
-                                    <f.icon size={18} style={{ color: f.c }} />
-                                </div>
-                                <p className="text-xs font-semibold text-1">{f.title}</p>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* ═══ TESTIMONIALS ═══ */}
-            <section id="reviews" className="py-24 px-6 max-w-6xl mx-auto">
-                <div className="text-center mb-14">
-                    <div className="badge inline-flex mb-5">Testimonials</div>
-                    <h2 className="font-display font-black text-1" style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)' }}>
-                        Real People. <span className="text-gradient">Real Results.</span>
-                    </h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    {TESTIMONIALS.map((t, i) => (
-                        <motion.div key={t.name} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                            className="card hover-lift p-6">
-                            <div className="flex gap-0.5 mb-4">
-                                {Array.from({ length: t.r }).map((_, j) => <Star key={j} size={13} className="text-yellow-400 fill-yellow-400" />)}
-                            </div>
-                            <p className="text-sm leading-relaxed mb-5" style={{ color: 'rgba(200,190,255,0.7)' }}>"{t.text}"</p>
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white flex-shrink-0"
-                                    style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>{t.name.charAt(0)}</div>
-                                <div><p className="font-semibold text-sm text-1">{t.name}</p><p className="text-xs text-3">{t.role}</p></div>
-                            </div>
-                        </motion.div>
-                    ))}
+                    <motion.p className="text-center text-xs mt-8" style={{ color: 'rgba(160,148,210,0.35)' }}
+                        initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.4 }}>
+                        Credits never expire • Instant top-up • Secure payment via Razorpay
+                    </motion.p>
                 </div>
             </section>
 
@@ -568,8 +736,11 @@ export default function Landing() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
                         <div className="md:col-span-2">
                             <div className="flex items-center gap-2.5 mb-3">
-                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}><TrendingUp size={12} className="text-white" /></div>
-                                <span className="font-display font-bold text-lg text-gradient">finexa</span>
+                                <div className="relative">
+                                    <div className="absolute -inset-1 rounded-full opacity-50" style={{ background: 'radial-gradient(circle,rgba(168,85,247,0.5),transparent 70%)', filter: 'blur(4px)' }} />
+                                    <img src="/logo.png" alt="Finexa" className="relative w-6 h-6 object-contain drop-shadow-[0_0_7px_rgba(168,85,247,0.8)]" />
+                                </div>
+                                <span className="font-display font-extrabold text-lg" style={{ background: 'linear-gradient(120deg,#fff 0%,#e8d5ff 50%,#c084fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Finexa</span>
                             </div>
                             <p className="text-xs leading-relaxed max-w-xs" style={{ color: 'rgba(160,148,210,0.45)' }}>AI-powered financial coaching. Privacy-first. Educational only. Not investment advice.</p>
                         </div>
