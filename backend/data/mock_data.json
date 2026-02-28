@@ -1,0 +1,13 @@
+[
+  {
+    "user_id": 1,
+    "name": "Atharva",
+    "income": 5000,
+    "transactions": [
+      {"id": 1, "date": "2025-07-01", "amount": 1200, "category": "Rent", "description": "Monthly rent"},
+      {"id": 2, "date": "2025-07-05", "amount": 300, "category": "Groceries", "description": "Supermarket"},
+      {"id": 3, "date": "2025-07-10", "amount": 250, "category": "Dining", "description": "Pizza Hut"},
+      {"id": 4, "date": "2025-07-12", "amount": 150, "category": "Entertainment", "description": "Movie tickets"}
+    ]
+  }
+]

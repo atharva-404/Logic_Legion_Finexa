@@ -1,0 +1,415 @@
+# Finexa Backend API Documentation
+
+> Complete API reference for the Finexa financial management platform
+
+**Base URL:** `http://localhost:8000` (Development)
+
+**Authentication:** JWT Bearer Token (except for registration/login endpoints)
+
+**Authorization Header Format:**
+```
+Authorization: Bearer <access_token>
+```
+
+---
+
+## Table of Contents
+
+1. [Authentication](#authentication)
+2. [AI Assistant & Document Processing](#ai-assistant--document-processing)
+3. [Wallet Management](#wallet-management)
+4. [Financial Health Score](#financial-health-score)
+5. [Transactions](#transactions)
+6. [Savings Goals](#savings-goals)
+7. [Gamification](#gamification)
+
+---
+
+## Authentication Endpoints
+
+Base Path: `/auth/`
+
+### 1. Register User
+- **POST** `/auth/register/`
+- Create a new user account
+
+Request:
+{
+  "username": "string",
+  "email": "user@example.com",
+  "password": "string",
+  "password2": "string"
+}
+
+Response (201):
+{
+  "user": {
+    "id": 1,
+    "username": "string",
+    "email": "user@example.com"
+  },
+  "tokens": {
+    "access": "JWT_TOKEN",
+    "refresh": "REFRESH_TOKEN"
+  }
+}
+
+### 2. Login
+- **POST** `/auth/login/`
+- Authenticate and get JWT tokens
+
+Request:
+{
+  "email": "user@example.com",
+  "password": "string"
+}
+
+Response (200):
+{
+  "user": {...},
+  "access": "JWT_TOKEN",
+  "refresh": "REFRESH_TOKEN"
+}
+
+### 3. Refresh Token
+- **POST** `/auth/refresh/`
+- Get new access token
+
+Request:
+{
+  "refresh": "REFRESH_TOKEN"
+}
+
+Response (200):
+{
+  "access": "NEW_JWT_TOKEN"
+}
+
+### 4. Get Current User
+- **GET** `/auth/me/`
+- 🔒 Requires Authentication
+- Get authenticated user profile
+
+### 5. Update Profile
+- **PUT** `/auth/profile/update/`
+- 🔒 Requires Authentication
+- Update first_name, last_name, income
+
+### 6. Verify Email
+- **POST** `/auth/verify-email/`
+- Verify email with token
+
+### 7. Send Verification Email
+- **POST** `/auth/send-verification-email/`
+- 🔒 Requires Authentication
+
+### 8. Forgot Password
+- **POST** `/auth/forgot-password/`
+- Request password reset
+
+### 9. Reset Password
+- **POST** `/auth/reset-password/`
+- Reset password with token
+
+---
+
+## AI Assistant & Document Processing
+
+Base Path: `/api/ai/`
+
+### 10. Process Document
+- **POST** `/api/ai/document/process/`
+- 🔒 Requires Authentication
+- Upload PDF/Image → Extract text → AI analysis → Store data
+
+Form Data: file (PDF/Image, max 10MB)
+
+Response:
+{
+  "success": true,
+  "document_id": 123,
+  "mongo_id": "...",
+  "extracted_text": "...",
+  "structured_data": {...},
+  "summary": "AI summary"
+}
+
+### 11. List Documents
+- **GET** `/api/ai/documents/`
+- 🔒 Requires Authentication
+- Get all uploaded documents
+
+### 12. Get Document Content
+- **GET** `/api/ai/documents/<document_id>/content/`
+- 🔒 Requires Authentication
+- Get extracted text from document
+
+### 13. Get Expense Summary
+- **GET** `/api/ai/expense-document/<mongo_id>/summary/`
+- 🔒 Requires Authentication
+- AI-generated expense summary
+
+### 14. Get Expense Suggestions
+- **GET** `/api/ai/expense-document/<mongo_id>/suggestions/`
+- 🔒 Requires Authentication
+- Personalized saving suggestions
+
+### 15. Get Chat Sessions
+- **GET** `/api/ai/chat-sessions/`
+- 🔒 Requires Authentication
+- List all chat sessions (paginated)
+
+### 16. Get Chat Messages
+- **GET** `/api/ai/chat-sessions/<session_id>/messages/`
+- 🔒 Requires Authentication
+- Get messages in a chat session
+
+---
+
+## Wallet Management
+
+Base Path: `/api/ai/wallet/`
+
+### 17. Get Wallet
+- **GET** `/api/ai/wallet/`
+- 🔒 Requires Authentication
+- Get wallet balance and info
+
+Response:
+{
+  "id": 1,
+  "balance": 5000.00,
+  "currency": "USD"
+}
+
+### 18. Add Money
+- **POST** `/api/ai/wallet/add-money/`
+- 🔒 Requires Authentication
+
+Request:
+{
+  "amount": 1000.00,
+  "description": "Salary"
+}
+
+### 19. Withdraw Money
+- **POST** `/api/ai/wallet/withdraw/`
+- 🔒 Requires Authentication
+
+Request:
+{
+  "amount": 500.00,
+  "description": "ATM"
+}
+
+### 20. Get Transactions
+- **GET** `/api/ai/wallet/transactions/`
+- 🔒 Requires Authentication
+- Paginated wallet transactions
+
+### 21. Get Timeline
+- **GET** `/api/ai/wallet/timeline/`
+- 🔒 Requires Authentication
+- Timeline view of wallet activity
+
+---
+
+## Financial Health Score
+
+Base Path: `/api/ai/financial-health/`
+
+### 22. Get Current Score
+- **GET** `/api/ai/financial-health/score/`
+- 🔒 Requires Authentication
+- Current financial health score (0-100)
+
+Response:
+{
+  "score": 75,
+  "grade": "Good",
+  "trend": "improving"
+}
+
+### 23. Get Score History
+- **GET** `/api/ai/financial-health/history/`
+- 🔒 Requires Authentication
+- Historical scores
+- Query params: period (week/month/year)
+
+### 24. Get Score Breakdown
+- **GET** `/api/ai/financial-health/breakdown/`
+- 🔒 Requires Authentication
+- Detailed component breakdown
+
+Response:
+{
+  "overall_score": 75,
+  "components": {
+    "savings_rate": {"score": 80, "weight": 0.3},
+    "debt_ratio": {"score": 70, "weight": 0.25},
+    "emergency_fund": {"score": 75, "weight": 0.25},
+    "spending_control": {"score": 75, "weight": 0.2}
+  }
+}
+
+### 25. Recalculate Score
+- **POST** `/api/ai/financial-health/recalculate/`
+- 🔒 Requires Authentication
+- Manually trigger score recalculation
+
+### 26. Get Recommendations
+- **GET** `/api/ai/financial-health/recommendations/`
+- 🔒 Requires Authentication
+- Personalized financial recommendations
+
+---
+
+## Transactions
+
+Base Path: `/api/transactions/`
+
+### 27. List Transactions
+- **GET** `/api/transactions/`
+- 🔒 Requires Authentication
+- Get all transactions (paginated)
+
+Response:
+{
+  "count": 100,
+  "results": [
+    {
+      "id": 1,
+      "amount": 45.50,
+      "category": "Food",
+      "type": "expense",
+      "description": "Grocery",
+      "date": "2024-01-15"
+    }
+  ]
+}
+
+### 28. Create Transaction
+- **POST** `/api/transactions/`
+- 🔒 Requires Authentication
+
+Request:
+{
+  "amount": 45.50,
+  "category": "Food",
+  "type": "expense",
+  "description": "Grocery",
+  "date": "2024-01-15"
+}
+
+---
+
+## Savings Goals
+
+Base Path: `/api/goals/`
+
+### 29. List Goals
+- **GET** `/api/goals/`
+- 🔒 Requires Authentication
+
+Response:
+{
+  "count": 5,
+  "results": [
+    {
+      "id": 1,
+      "title": "Emergency Fund",
+      "target_amount": 10000.00,
+      "current_amount": 5000.00,
+      "deadline": "2024-12-31",
+      "progress_percentage": 50,
+      "status": "in_progress"
+    }
+  ]
+}
+
+### 30. Create Goal
+- **POST** `/api/goals/`
+- 🔒 Requires Authentication
+
+Request:
+{
+  "title": "Vacation Fund",
+  "target_amount": 5000.00,
+  "current_amount": 500.00,
+  "deadline": "2024-08-31"
+}
+
+---
+
+## Gamification
+
+Base Path: `/api/gamification/`
+
+### 31. List Badges
+- **GET** `/api/gamification/`
+- 🔒 Requires Authentication
+
+Response:
+{
+  "badges": [
+    {
+      "id": 1,
+      "name": "First Save",
+      "description": "Made first transaction",
+      "icon": "🎯",
+      "earned": true,
+      "earned_at": "2024-01-01T10:00:00Z"
+    }
+  ],
+  "total_points": 150,
+  "level": 3
+}
+
+---
+
+## Error Responses
+
+400 Bad Request:
+{
+  "error": "Invalid input",
+  "details": {"field": ["error"]}
+}
+
+401 Unauthorized:
+{
+  "detail": "Authentication credentials were not provided."
+}
+
+404 Not Found:
+{
+  "detail": "Not found."
+}
+
+---
+
+## Important Notes
+
+### Authentication Flow:
+1. Register via /auth/register/ or login via /auth/login/
+2. Store access and refresh tokens securely
+3. Include access token in Authorization header: "Bearer <token>"
+4. Use /auth/refresh/ to get new access token when expired
+
+### Pagination:
+Most list endpoints support:
+- page: Page number (default: 1)
+- page_size: Results per page (default: 10)
+
+### Date Format:
+ISO 8601: YYYY-MM-DDTHH:MM:SSZ
+
+### File Uploads:
+- Accepted: PDF (.pdf), Images (.jpg, .jpeg, .png)
+- Max size: 10MB
+
+---
+
+Created: 2024-01-23
+Version: 1.0
+Framework: Django REST Framework
+Databases: PostgreSQL + MongoDB
