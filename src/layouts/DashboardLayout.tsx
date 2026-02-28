@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, PieChart, Target, Wallet, Shield, Zap,
@@ -9,6 +9,8 @@ import {
     AlertCircle, CheckCircle, Info, Clock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 import { useFinancialStore } from '../store/financialStore';
 
@@ -43,6 +45,25 @@ const SAMPLE_NOTIFS = [
     { id: 4, type: 'warning', title: 'Gym Membership unused', body: 'You have not used your gym membership in 32 days.', time: '2d ago', read: true },
     { id: 5, type: 'success', title: 'Habit streak: 5 days', body: 'You are on a 5-day expense tracking streak.', time: '3d ago', read: true },
 ];
+
+function FinexaScorePill() {
+    const { healthScore } = useFinancialStore();
+    const { isDark } = useTheme();
+    const score = healthScore ?? 0;
+    return (
+        <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+            style={{
+                background: isDark ? 'rgba(34,197,94,0.1)' : 'rgba(34,197,94,0.05)',
+                border: isDark ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(34,197,94,0.2)',
+                color: isDark ? '#4ade80' : '#15803d',
+                boxShadow: isDark ? '0 2px 12px rgba(34,197,94,0.15)' : '0 2px 8px rgba(34,197,94,0.05)',
+            }}>
+            <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#22c55e', boxShadow: `0 0 6px ${isDark ? 'rgba(34,197,94,0.9)' : 'rgba(34,197,94,0.4)'}` }} />
+            <span className="opacity-80">Fin Score</span>
+            <span className="font-bold">{score}</span>
+        </div>
+    );
+}
 
 const notifIcon = { warning: AlertCircle, success: CheckCircle, info: Info };
 const notifColor = { warning: '#f59e0b', success: '#10b981', info: '#60a5fa' };
@@ -176,6 +197,7 @@ function CreditsBuyModal({ isOpen, onClose, onBuy }: { isOpen: boolean; onClose:
 
 export default function DashboardLayout() {
     const { user, logout } = useAuth();
+    const { isDark } = useTheme();
     const { aiCredits, addCredits, totalPoints } = useFinancialStore();
     const navigate = useNavigate();
 
@@ -199,7 +221,7 @@ export default function DashboardLayout() {
     const SidebarContent = () => (
         <div className="flex flex-col h-full overflow-hidden">
             {/* Logo */}
-            <div className="flex items-center gap-3 px-4 py-5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+            <Link to="/" className="flex items-center gap-3 px-4 py-5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
                 <div className="relative flex-shrink-0">
                     <div className="absolute -inset-1.5 rounded-full opacity-55"
                         style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.5), transparent 70%)', filter: 'blur(5px)', animation: 'glowPulse 3s ease-in-out infinite' }} />
@@ -207,11 +229,19 @@ export default function DashboardLayout() {
                 </div>
                 {!collapsed && (
                     <span className="font-display font-extrabold text-xl"
-                        style={{ background: 'linear-gradient(120deg, #ffffff 0%, #e8d5ff 50%, #c084fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', letterSpacing: '-0.01em' }}>
+                        style={{
+                            background: isDark
+                                ? 'linear-gradient(120deg, #ffffff 0%, #e8d5ff 50%, #c084fc 100%)'
+                                : 'linear-gradient(120deg, #0a0a0a 0%, #4a3a6a 50%, #7c3aed 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                            letterSpacing: '-0.01em'
+                        }}>
                         Finexa
                     </span>
                 )}
-            </div>
+            </Link>
 
             {/* AI Credits */}
             {!collapsed && (
@@ -231,12 +261,12 @@ export default function DashboardLayout() {
                         <span className="text-sm font-bold text-1">{aiCredits.toLocaleString()}</span>
                         <span className="text-[10px] text-3">{credPct.toFixed(0)}%</span>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(168,85,247,0.12)' }}>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? 'rgba(168,85,247,0.12)' : 'rgba(124,58,237,0.08)' }}>
                         <motion.div className="h-full rounded-full"
                             initial={{ width: 0 }} animate={{ width: `${credPct}%` }} transition={{ duration: 0.8 }}
                             style={{ background: credPct > 20 ? 'linear-gradient(90deg, #7c3aed, #a855f7)' : 'linear-gradient(90deg, #ef4444, #f97316)' }} />
                     </div>
-                    {aiCredits < 10000 && <p className="text-[10px] text-red-400 mt-1.5 font-medium">Low — top up now</p>}
+                    {aiCredits < 10000 && <p className="text-[10px] text-red-500 mt-1.5 font-medium">Low — top up now</p>}
                 </div>
             )}
 
@@ -259,7 +289,7 @@ export default function DashboardLayout() {
                         <span className="text-xs text-3">Habit Points</span>
                         <span className="text-xs font-bold" style={{ color: 'var(--purple-light)' }}>{totalPoints} pts</span>
                     </div>
-                    <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(168,85,247,0.12)' }}>
+                    <div className="h-1 rounded-full overflow-hidden" style={{ background: isDark ? 'rgba(168,85,247,0.12)' : 'rgba(124,58,237,0.08)' }}>
                         <div className="h-full rounded-full transition-all duration-700"
                             style={{ width: `${Math.min(100, (totalPoints / 1000) * 100)}%`, background: 'linear-gradient(90deg, #7c3aed, #a855f7)' }} />
                     </div>
@@ -281,8 +311,8 @@ export default function DashboardLayout() {
                     </div>
                 )}
                 <button onClick={() => { logout(); navigate('/'); }}
-                    className={`nav-item w-full hover:!text-red-400 hover:!bg-red-500/8 ${collapsed ? 'justify-center px-0' : ''}`}
-                    style={{ color: 'rgba(239,68,68,0.55)' }}>
+                    className={`nav-item w-full hover:!text-red-500 hover:!bg-red-500/8 ${collapsed ? 'justify-center px-0' : ''}`}
+                    style={{ color: isDark ? 'rgba(239,68,68,0.55)' : 'rgba(220,38,38,0.65)' }}>
                     <LogOut size={15} className="flex-shrink-0" />
                     {!collapsed && <span>Sign Out</span>}
                 </button>
@@ -324,16 +354,33 @@ export default function DashboardLayout() {
 
             {/* Main */}
             <div className="flex-1 flex flex-col min-w-0">
-                {/* Top bar */}
-                <header className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-                    style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+                {/* Top bar — glassmorphism */}
+                <header className="flex items-center justify-between px-5 py-3 flex-shrink-0 sticky top-0 z-30"
+                    style={{
+                        background: 'var(--surface)',
+                        backdropFilter: 'blur(24px)',
+                        WebkitBackdropFilter: 'blur(24px)',
+                        borderBottom: '1px solid var(--border)',
+                        boxShadow: isDark
+                            ? '0 1px 0 rgba(168,85,247,0.12), 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
+                            : '0 1px 0 rgba(124,58,237,0.08), 0 4px 20px rgba(124,58,237,0.04)',
+                    }}>
+
+                    {/* Gradient accent line at very bottom of header */}
+                    <div className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
+                        style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(124,58,237,0.6) 25%, rgba(168,85,247,0.8) 50%, rgba(124,58,237,0.6) 75%, transparent 100%)' }} />
+
                     <div className="flex items-center gap-3">
                         <button className="md:hidden btn-ghost p-2" onClick={() => setMobileOpen(true)}>
                             <Menu size={20} />
                         </button>
                         <div className="hidden sm:block">
                             <p className="text-sm font-semibold text-1">
-                                Hello, {user?.first_name || user?.username?.split('_')[0] || 'there'}
+                                {(() => {
+                                    const h = new Date().getHours();
+                                    const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+                                    return `${greeting}, ${user?.first_name || user?.username?.split('_')[0] || 'there'} 👋`;
+                                })()}
                             </p>
                             <p className="text-[11px] text-3">Your financial dashboard</p>
                         </div>
@@ -343,33 +390,51 @@ export default function DashboardLayout() {
                     <div className="flex items-center gap-2">
                         {/* Credits pill */}
                         <button onClick={() => setBuyCreditsOpen(true)}
-                            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                            style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: 'var(--purple-light)' }}>
+                            className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+                            style={{
+                                background: isDark ? 'rgba(124,58,237,0.1)' : 'rgba(124,58,237,0.05)',
+                                border: '1px solid var(--border-hi)',
+                                color: 'var(--purple)',
+                                boxShadow: isDark ? '0 2px 12px rgba(124,58,237,0.15)' : '0 2px 8px rgba(124,58,237,0.05)',
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(124,58,237,0.2)' : 'rgba(124,58,237,0.12)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(124,58,237,0.1)' : 'rgba(124,58,237,0.05)'; }}>
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--purple)', boxShadow: `0 0 6px ${isDark ? 'rgba(168,85,247,0.9)' : 'rgba(124,58,237,0.4)'}` }} />
                             <Sparkles size={11} />
                             {aiCredits >= 1000 ? `${(aiCredits / 1000).toFixed(0)}k` : aiCredits} credits
                         </button>
 
+                        {/* Finexa Score */}
+                        <FinexaScorePill />
 
+                        {/* Theme toggle */}
+                        <ThemeToggle size="sm" />
 
                         {/* Bell */}
                         <button onClick={() => setNotifOpen(!notifOpen)}
-                            className="w-9 h-9 rounded-xl flex items-center justify-center relative transition-all"
+                            className="w-9 h-9 rounded-xl flex items-center justify-center relative transition-all duration-200"
                             style={{
-                                background: notifOpen ? 'rgba(168,85,247,0.15)' : 'var(--surface-2)',
-                                border: `1px solid ${notifOpen ? 'rgba(168,85,247,0.4)' : 'var(--border)'}`,
+                                background: notifOpen ? 'rgba(168,85,247,0.18)' : 'rgba(168,85,247,0.04)',
+                                border: `1px solid ${notifOpen ? 'var(--purple)' : 'var(--border)'}`,
+                                boxShadow: notifOpen ? (isDark ? '0 0 16px rgba(168,85,247,0.3)' : '0 0 12px rgba(168,85,247,0.15)') : 'none',
                             }}>
                             <Bell size={15} style={{ color: notifOpen ? 'var(--purple)' : 'var(--text-3)' }} />
                             {unreadNotifs > 0 && (
                                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                                     className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                                    style={{ background: 'var(--purple)' }} />
+                                    style={{ background: 'var(--purple)', boxShadow: `0 0 6px ${isDark ? 'rgba(168,85,247,0.9)' : 'rgba(124,58,237,0.4)'}` }} />
                             )}
                         </button>
 
                         {/* Avatar */}
                         <button onClick={() => navigate('/dashboard/settings')}
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white glow-sm"
-                            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
+                            className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white transition-all duration-200"
+                            style={{
+                                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                                boxShadow: '0 0 18px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.3)',
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 28px rgba(168,85,247,0.7), 0 2px 8px rgba(0,0,0,0.3)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 18px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.3)'; }}>
                             {initials}
                         </button>
                     </div>

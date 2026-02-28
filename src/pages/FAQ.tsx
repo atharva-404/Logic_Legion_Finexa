@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ArrowLeft, MessageCircle } from 'lucide-react';
+import { ChevronDown, MessageCircle } from 'lucide-react';
+import Navbar from '../components/Navbar';
 
 const FAQS = [
     {
         category: 'Getting Started',
         items: [
-            { q: 'Is Finexa free to use?', a: 'Yes — the core app is completely free. You start with 400 AI credits on sign-up, which is enough to get a full financial health analysis. Additional credits are available as one-time purchases with no recurring fees.' },
+            { q: 'Is Finexa free to use?', a: 'Yes — the core app is completely free. You start with 100,000 AI credits on sign-up, which is more than enough to get a full financial health analysis, multiple AI Coach chats, and risk simulations. Additional credits are available as one-time purchases with no recurring fees.' },
             { q: 'Do I need a real bank account to try Finexa?', a: 'No. You can sign in with the demo account (demo@finexa.ai / demo1234) to explore all features with pre-loaded sample data. You can also sign up and use Finexa fully offline.' },
             { q: 'What file formats can I upload?', a: 'Finexa supports standard bank statement PDFs exported from major Indian banks. The AI parses the PDF, extracts all transactions, and structures them automatically — no manual entry needed.' },
         ],
@@ -15,7 +15,7 @@ const FAQS = [
     {
         category: 'AI Credits',
         items: [
-            { q: 'What are AI credits and how do they work?', a: 'AI credits power every AI feature — each chat message costs 100 credits, a document analysis costs 500 credits, and a risk simulation costs 200 credits. You start with 400 free credits. Top up any time from the Subscription page.' },
+            { q: 'What are AI credits and how do they work?', a: 'AI credits power every AI feature — each chat message costs 100 credits, a document analysis costs 500 credits, and a risk simulation costs 200 credits. You start with 100,000 free credits. Top up any time from the Subscription page.' },
             { q: 'What happens if I run out of credits?', a: 'You can continue to use all non-AI features (budget tracking, goal setting, wallet, transactions etc.) even with zero credits. To use AI features again, simply top up with one of our credit packages.' },
             { q: 'Do credits expire?', a: 'Never. Credits you purchase stay in your account forever.' },
         ],
@@ -37,42 +37,30 @@ const FAQS = [
 ];
 
 export default function FAQ() {
-    const navigate = useNavigate();
     const [open, setOpen] = useState<string | null>(null);
 
     return (
-        <div className="min-h-screen" style={{ background: 'linear-gradient(180deg,#07050f 0%,#0d0820 50%,#07050f 100%)' }}>
+        <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
 
             {/* Ambient glow */}
             <div className="fixed inset-0 pointer-events-none"
-                style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(124,58,237,0.12), transparent)' }} />
+                style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, var(--purple-dim), transparent)' }} />
 
-            {/* Top bar — back only */}
-            <div className="sticky top-0 z-50 px-6 py-4 flex items-center"
-                style={{ background: 'rgba(7,5,15,0.8)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
-                <button onClick={() => navigate(-1)}
-                    className="inline-flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
-                    style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.25)', color: 'rgba(192,132,252,0.9)' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(168,85,247,0.18)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(168,85,247,0.1)'; }}>
-                    <ArrowLeft size={15} />
-                    Back
-                </button>
-            </div>
+            <Navbar />
 
-            <div className="relative max-w-2xl mx-auto px-6 pt-14 pb-24">
+            <div className="relative max-w-2xl mx-auto px-6 pt-28 pb-24">
 
                 {/* Header */}
                 <motion.div className="text-center mb-14"
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                     <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6"
-                        style={{ background: 'linear-gradient(135deg,rgba(124,58,237,0.15),rgba(168,85,247,0.08))', border: '1px solid rgba(168,85,247,0.25)' }}>
-                        <MessageCircle size={22} style={{ color: '#a855f7' }} />
+                        style={{ background: 'var(--purple-dim)', border: '1px solid var(--border-hi)' }}>
+                        <MessageCircle size={22} className="text-purple" />
                     </div>
-                    <h1 className="font-display font-black text-white mb-3" style={{ fontSize: 'clamp(1.8rem,4vw,2.8rem)' }}>
+                    <h1 className="font-display font-black text-1 mb-3" style={{ fontSize: 'clamp(1.8rem,4vw,2.8rem)' }}>
                         Frequently Asked <span className="text-gradient">Questions</span>
                     </h1>
-                    <p className="text-sm" style={{ color: 'rgba(180,165,230,0.5)' }}>
+                    <p className="text-sm text-3">
                         Everything you need to know about Finexa
                     </p>
                 </motion.div>
@@ -83,35 +71,35 @@ export default function FAQ() {
                         <motion.div key={cat.category}
                             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: ci * 0.08 }}>
-                            <p className="text-xs font-bold tracking-[0.2em] uppercase mb-3"
-                                style={{ color: 'rgba(168,85,247,0.55)' }}>{cat.category}</p>
-                            <div className="space-y-2">
+                            <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-4 text-purple"
+                                style={{ opacity: 0.8 }}>{cat.category}</p>
+                            <div className="space-y-3">
                                 {cat.items.map((faq, fi) => {
                                     const key = `${ci}-${fi}`;
                                     const isOpen = open === key;
                                     return (
                                         <div key={fi}
-                                            className="rounded-2xl overflow-hidden transition-all duration-200"
+                                            className="card overflow-hidden transition-all duration-300"
                                             style={{
-                                                background: isOpen ? 'rgba(124,58,237,0.06)' : 'rgba(12,8,28,0.8)',
-                                                border: `1px solid ${isOpen ? 'rgba(168,85,247,0.3)' : 'rgba(168,85,247,0.1)'}`,
+                                                background: isOpen ? 'var(--purple-dim)' : 'var(--surface)',
+                                                borderColor: isOpen ? 'var(--purple)' : 'var(--border)',
                                             }}>
-                                            <button className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+                                            <button className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
                                                 onClick={() => setOpen(isOpen ? null : key)}>
-                                                <span className="text-sm font-semibold" style={{ color: isOpen ? '#fff' : 'rgba(220,210,255,0.8)' }}>
+                                                <span className={`text-sm font-semibold transition-colors ${isOpen ? 'text-1' : 'text-2'}`}>
                                                     {faq.q}
                                                 </span>
                                                 <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.22 }} className="flex-shrink-0">
-                                                    <ChevronDown size={15} style={{ color: isOpen ? '#a855f7' : 'rgba(168,85,247,0.4)' }} />
+                                                    <ChevronDown size={15} className={isOpen ? 'text-purple' : 'text-3'} />
                                                 </motion.div>
                                             </button>
                                             <AnimatePresence initial={false}>
                                                 {isOpen && (
                                                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
                                                         exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}>
-                                                        <div className="px-5 pb-5 text-sm leading-relaxed"
-                                                            style={{ color: 'rgba(180,165,230,0.55)', borderTop: '1px solid rgba(168,85,247,0.08)' }}>
-                                                            <div className="pt-3">{faq.a}</div>
+                                                        <div className="px-6 pb-6 text-sm leading-relaxed text-3"
+                                                            style={{ borderTop: '1px solid var(--border)' }}>
+                                                            <div className="pt-4">{faq.a}</div>
                                                         </div>
                                                     </motion.div>
                                                 )}

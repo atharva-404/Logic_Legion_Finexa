@@ -6,6 +6,7 @@ interface FinancialState {
     monthlyIncome: number;
     monthlyExpenses: number;
     emergencySavings: number;
+    healthScore: number;
     goals: Goal[];
     habits: HabitChallenge[];
     totalPoints: number;
@@ -16,6 +17,7 @@ interface FinancialState {
     setIncome: (income: number) => void;
     setExpenses: (expenses: number) => void;
     setSavings: (savings: number) => void;
+    setHealthScore: (score: number) => void;
     addGoal: (goal: Goal) => void;
     updateGoalProgress: (id: string, amount: number) => void;
     removeGoal: (id: string) => void;
@@ -36,6 +38,7 @@ export const useFinancialStore = create<FinancialState>()(
             monthlyIncome: 85000,
             monthlyExpenses: 54500,
             emergencySavings: 120000,
+            healthScore: 50,
             goals: defaultGoals,
             habits: defaultHabits,
             totalPoints: 175,
@@ -46,6 +49,7 @@ export const useFinancialStore = create<FinancialState>()(
             setIncome: (income) => set({ monthlyIncome: income }),
             setExpenses: (expenses) => set({ monthlyExpenses: expenses }),
             setSavings: (savings) => set({ emergencySavings: savings }),
+            setHealthScore: (score) => set({ healthScore: score }),
 
             addGoal: (goal) => set(state => ({ goals: [...state.goals, goal] })),
             updateGoalProgress: (id, amount) =>
@@ -94,7 +98,7 @@ export const useFinancialStore = create<FinancialState>()(
 
             deleteAllData: () => set({
                 monthlyIncome: 85000, monthlyExpenses: 54500, emergencySavings: 120000,
-                goals: defaultGoals, habits: defaultHabits, totalPoints: 0,
+                healthScore: 50, goals: defaultGoals, habits: defaultHabits, totalPoints: 0,
                 eli15Mode: false, aiCredits: 100000, creditLog: [],
             }),
         }),

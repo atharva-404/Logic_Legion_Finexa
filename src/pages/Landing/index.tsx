@@ -2,6 +2,9 @@ import { useRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useMotionValue, useSpring, useInView, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { useFinancialStore } from '../../store/financialStore';
+import { useTheme } from '../../contexts/ThemeContext';
+import ThemeToggle from '../../components/ThemeToggle';
 import {
     Shield, Zap, Brain, Wallet, Target, TrendingUp,
     ArrowRight, Check, BarChart3, Lock, Sparkles,
@@ -55,19 +58,18 @@ function ShootingStars() {
 function HeroCard3D() {
     const rotX = useMotionValue(0);
     const rotY = useMotionValue(0);
-    const sRotX = useSpring(rotX, { stiffness: 200, damping: 22 });
-    const sRotY = useSpring(rotY, { stiffness: 200, damping: 22 });
+    const sRotX = useSpring(rotX, { stiffness: 150, damping: 22 });
+    const sRotY = useSpring(rotY, { stiffness: 150, damping: 22 });
     const ref = useRef<HTMLDivElement>(null);
 
     const onMove = (e: React.MouseEvent) => {
         const r = ref.current?.getBoundingClientRect();
         if (!r) return;
-        rotX.set(((e.clientY - r.top - r.height / 2) / r.height) * -20);
-        rotY.set(((e.clientX - r.left - r.width / 2) / r.width) * 24);
+        rotX.set(((e.clientY - r.top - r.height / 2) / r.height) * -10);
+        rotY.set(((e.clientX - r.left - r.width / 2) / r.width) * 12);
     };
     const onLeave = () => { rotX.set(0); rotY.set(0); };
 
-    /* Standard credit card: 85.6 mm × 53.98 mm ≈ 1.586 ratio */
     const W = 375, H = 236;
 
     return (
@@ -75,22 +77,20 @@ function HeroCard3D() {
             className="relative select-none"
             style={{ perspective: 1000, width: W, maxWidth: '100%' }}>
 
-            {/* floating stat chips */}
-            <motion.div animate={{ y: [-6, 6, -6] }} transition={{ duration: 3.5, repeat: Infinity }}
-                className="absolute -top-10 -right-6 card-glow px-3 py-2 z-20 hidden lg:flex items-center gap-2">
-                <BarChart3 size={11} style={{ color: '#10b981' }} />
-                <div><p className="text-[8px] text-3">Savings Rate</p><p className="text-xs font-bold" style={{ color: '#10b981' }}>+21.4%</p></div>
-            </motion.div>
-            <motion.div animate={{ y: [6, -6, 6] }} transition={{ duration: 4, repeat: Infinity }}
-                className="absolute -bottom-8 -left-8 card-glow px-3 py-2 z-20 hidden lg:flex items-center gap-2">
-                <Sparkles size={11} style={{ color: 'var(--purple)' }} />
-                <div><p className="text-[8px] text-3">AI Credits</p><p className="text-xs font-bold text-gradient">97.1k</p></div>
-            </motion.div>
-            <motion.div animate={{ y: [-4, 4, -4] }} transition={{ duration: 4.5, repeat: Infinity, delay: 0.5 }}
-                className="absolute top-1/2 -right-16 card-glow px-2.5 py-1.5 z-20 hidden lg:flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-[9px] font-semibold text-1">Score 74</span>
-            </motion.div>
+            {/* Deep wide glow */}
+            <div className="absolute pointer-events-none"
+                style={{ inset: -60, background: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(124,58,237,0.55), rgba(168,85,247,0.18) 55%, transparent 75%)', filter: 'blur(38px)' }} />
+            {/* Close inner glow */}
+            <div className="absolute pointer-events-none"
+                style={{ inset: -12, background: 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(192,132,252,0.18), transparent)', filter: 'blur(12px)' }} />
+
+            {/* Neon border ring */}
+            <div className="absolute pointer-events-none" style={{
+                inset: -2, borderRadius: 20,
+                background: 'linear-gradient(135deg, rgba(192,132,252,0.7) 0%, rgba(124,58,237,0.4) 50%, rgba(236,72,153,0.5) 100%)',
+                padding: 1.5, WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                WebkitMaskComposite: 'xor', maskComposite: 'exclude',
+            }} />
 
             {/* Card */}
             <motion.div style={{ rotateX: sRotX, rotateY: sRotY, transformStyle: 'preserve-3d' }}
@@ -98,74 +98,51 @@ function HeroCard3D() {
                 transition={{ y: { duration: 5, repeat: Infinity, ease: 'easeInOut' } }}>
 
                 <div style={{
-                    width: '100%',
-                    aspectRatio: `${W} / ${H}`,
+                    width: '100%', aspectRatio: `${W} / ${H}`,
                     borderRadius: 18,
-                    background: 'linear-gradient(135deg, #1a0a3a 0%, #2d1060 40%, #180836 100%)',
-                    boxShadow: '0 30px 80px rgba(124,58,237,0.5), 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12)',
-                    position: 'relative',
-                    overflow: 'hidden',
+                    background: 'linear-gradient(135deg, #1c0b3c 0%, #2f1268 40%, #1a0a38 100%)',
+                    boxShadow: '0 32px 90px rgba(124,58,237,0.6), 0 8px 32px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(168,85,247,0.2)',
+                    position: 'relative', overflow: 'hidden',
                 }}>
-                    {/* Background circles */}
                     <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
-                        <circle cx={W * 0.95} cy={H * -0.1} r="120" stroke="rgba(255,255,255,0.05)" strokeWidth="1" fill="none" />
-                        <circle cx={W * 0.95} cy={H * -0.1} r="175" stroke="rgba(255,255,255,0.03)" strokeWidth="1" fill="none" />
+                        <circle cx={W * 0.95} cy={H * -0.1} r="120" stroke="rgba(255,255,255,0.06)" strokeWidth="1" fill="none" />
+                        <circle cx={W * 0.95} cy={H * -0.1} r="175" stroke="rgba(255,255,255,0.04)" strokeWidth="1" fill="none" />
                         <circle cx={W * -0.05} cy={H * 1.05} r="100" stroke="rgba(255,255,255,0.04)" strokeWidth="1" fill="none" />
-                        <circle cx={W * 0.5} cy={H * 0.5} r="80" stroke="rgba(168,85,247,0.06)" strokeWidth="1" fill="none" />
+                        <circle cx={W * 0.5} cy={H * 0.5} r="80" stroke="rgba(168,85,247,0.08)" strokeWidth="1" fill="none" />
                     </svg>
-
                     {/* Sheen */}
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, transparent 55%)' }} />
-
-                    {/* Holographic shift */}
-                    <div className="absolute inset-0 opacity-[0.18]"
-                        style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.5), rgba(59,130,246,0.3) 50%, rgba(236,72,153,0.25))', animation: 'gradientShift 5s ease infinite', backgroundSize: '300% 300%' }} />
-
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 50%)' }} />
+                    {/* Holographic */}
+                    <div className="absolute inset-0 opacity-[0.22]" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.6), rgba(59,130,246,0.35) 50%, rgba(236,72,153,0.3))', animation: 'gradientShift 5s ease infinite', backgroundSize: '300% 300%' }} />
                     {/* Scan line */}
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        <motion.div className="absolute left-0 right-0 h-px"
-                            style={{ background: 'linear-gradient(90deg, transparent, rgba(192,132,252,0.85), rgba(255,255,255,0.5), rgba(192,132,252,0.85), transparent)' }}
+                        <motion.div className="absolute left-0 right-0 h-[1.5px]"
+                            style={{ background: 'linear-gradient(90deg, transparent, rgba(192,132,252,0.95), rgba(255,255,255,0.6), rgba(192,132,252,0.95), transparent)' }}
                             animate={{ top: ['0%', '100%'] }}
-                            transition={{ duration: 3, repeat: Infinity, ease: 'linear', repeatDelay: 2 }} />
+                            transition={{ duration: 2.8, repeat: Infinity, ease: 'linear', repeatDelay: 1.8 }} />
                     </div>
-
-                    {/* Purple band bottom */}
-                    <div className="absolute bottom-0 left-0 right-0 h-1"
-                        style={{ background: 'linear-gradient(90deg, #7c3aed, #a855f7, #c084fc, #a855f7, #7c3aed)' }} />
-
-                    {/* Content */}
+                    {/* Bottom band */}
+                    <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(90deg, #7c3aed, #a855f7, #c084fc, #ec4899, #c084fc, #a855f7, #7c3aed)' }} />
                     <div className="relative z-10 flex flex-col h-full" style={{ padding: '20px 24px 18px' }}>
-
-                        {/* Top row: NFC + VISA */}
                         <div className="flex items-center justify-between mb-auto">
                             <div className="flex items-center gap-1.5">
                                 <Wifi size={14} className="text-white/40 -rotate-90" />
                                 <span className="text-white/35 text-[9px] font-mono tracking-[0.35em]">NFC</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full" style={{ background: 'rgba(168,85,247,0.9)', boxShadow: '0 0 8px rgba(168,85,247,0.8)' }} />
-                                <span className="text-white/70 text-[11px] font-black tracking-[0.3em]">FINEXA</span>
+                                <div className="w-2 h-2 rounded-full" style={{ background: 'rgba(168,85,247,0.95)', boxShadow: '0 0 10px rgba(168,85,247,0.9)' }} />
+                                <span className="text-white/80 text-[11px] font-black tracking-[0.3em]">FINEXA</span>
                             </div>
                         </div>
-
-                        {/* Chip */}
                         <div className="mt-3 mb-4">
-                            <div style={{
-                                width: 42, height: 32, borderRadius: 6,
-                                background: 'linear-gradient(135deg, #c8943a 0%, #f0c868 30%, #b87c28 60%, #deb454 100%)',
-                                boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.35), inset -1px -1px 2px rgba(0,0,0,0.2)',
-                            }}>
+                            <div style={{ width: 42, height: 32, borderRadius: 6, background: 'linear-gradient(135deg, #c8943a 0%, #f0c868 30%, #b87c28 60%, #deb454 100%)', boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.35), 0 2px 8px rgba(200,148,58,0.4)' }}>
                                 <div className="w-full h-full rounded-md" style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px)', borderRadius: 6 }} />
                             </div>
                         </div>
-
-                        {/* Card number */}
                         <div className="mb-5">
                             <p className="text-white/20 text-[7px] mb-1 font-mono tracking-[0.3em]">CARD NUMBER</p>
-                            <p className="text-white font-mono tracking-[0.2em] drop-shadow-sm" style={{ fontSize: 15 }}>4532 8821 •••• 4231</p>
+                            <p className="text-white font-mono tracking-[0.2em] drop-shadow-sm" style={{ fontSize: 15, textShadow: '0 0 20px rgba(168,85,247,0.4)' }}>4532 8821 •••• 4231</p>
                         </div>
-
-                        {/* Bottom: holder + expiry + mastercard circles */}
                         <div className="flex items-end justify-between">
                             <div>
                                 <p className="text-white/20 text-[7px] tracking-[0.3em] mb-0.5">CARD HOLDER</p>
@@ -176,8 +153,8 @@ function HeroCard3D() {
                                 <p className="text-white text-xs font-semibold">08 / 28</p>
                             </div>
                             <div className="flex -space-x-3">
-                                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(220,38,38,0.7)', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }} />
-                                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(234,179,8,0.7)', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }} />
+                                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(220,38,38,0.75)', boxShadow: '0 2px 8px rgba(220,38,38,0.4)' }} />
+                                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(234,179,8,0.75)', boxShadow: '0 2px 8px rgba(234,179,8,0.3)' }} />
                             </div>
                         </div>
                     </div>
@@ -186,6 +163,7 @@ function HeroCard3D() {
         </div>
     );
 }
+
 
 /* ── Feature cards data ─────────────────────── */
 const FEATURES = [
@@ -199,9 +177,157 @@ const FEATURES = [
 
 
 
+/* -- Finexa Score Pill (navbar) ---------------------- */
+function FinexaScorePill() {
+    const { healthScore } = useFinancialStore();
+    const { isDark } = useTheme();
+    const score = healthScore ?? 0;
+    return (
+        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all duration-300"
+            style={{
+                background: isDark ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.04)',
+                border: isDark ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(34,197,94,0.2)',
+                color: isDark ? '#4ade80' : '#15803d'
+            }}>
+            <div className="w-1 h-1 rounded-full bg-green-500" style={{ boxShadow: isDark ? '0 0 6px #22c55e' : 'none' }} />
+            <span className="opacity-80">Fin Score</span>
+            <span className="font-bold">{score}</span>
+        </div>
+    );
+}
+
+/* -- AI Advisor Card with 3D tilt -------------------- */
+function AIAdvisorCard() {
+    const rotX = useMotionValue(0);
+    const rotY = useMotionValue(0);
+    const sRotX = useSpring(rotX, { stiffness: 200, damping: 24 });
+    const sRotY = useSpring(rotY, { stiffness: 200, damping: 24 });
+    const ref = useRef<HTMLDivElement>(null);
+
+    const onMove = (e: React.MouseEvent) => {
+        const r = ref.current?.getBoundingClientRect();
+        if (!r) return;
+        rotX.set(((e.clientY - r.top - r.height / 2) / r.height) * -14);
+        rotY.set(((e.clientX - r.left - r.width / 2) / r.width) * 18);
+    };
+    const onLeave = () => { rotX.set(0); rotY.set(0); };
+
+    return (
+        <div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave}
+            className="relative select-none hidden lg:block" style={{ perspective: 1000, width: 240 }}>
+
+            {/* Ambient glow */}
+            <div className="absolute pointer-events-none"
+                style={{ inset: -28, background: 'radial-gradient(ellipse 80% 70% at 50% 50%, rgba(124,58,237,0.3), transparent)', filter: 'blur(22px)' }} />
+
+            {/* Floating chips */}
+            <motion.div animate={{ y: [-4, 4, -4], opacity: [0.8, 1, 0.8] }} transition={{ duration: 3, repeat: Infinity }}
+                className="absolute -top-6 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full pointer-events-none"
+                style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(168,85,247,0.25)', backdropFilter: 'blur(8px)' }}>
+                <Sparkles size={8} style={{ color: '#a855f7' }} />
+                <span className="text-[8px] font-semibold" style={{ color: 'rgba(192,132,252,0.9)' }}>Analyzing spending…</span>
+            </motion.div>
+            <motion.div animate={{ y: [3, -3, 3], opacity: [0.7, 1, 0.7] }} transition={{ duration: 4, repeat: Infinity, delay: 0.8 }}
+                className="absolute -bottom-6 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full pointer-events-none"
+                style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', backdropFilter: 'blur(8px)' }}>
+                <div className="w-1 h-1 rounded-full" style={{ background: '#22c55e', boxShadow: '0 0 4px #22c55e' }} />
+                <span className="text-[8px] font-semibold" style={{ color: '#4ade80' }}>End-to-end encrypted</span>
+            </motion.div>
+            <motion.div animate={{ x: [-2, 2, -2], opacity: [0.65, 1, 0.65] }} transition={{ duration: 3.5, repeat: Infinity, delay: 1.4 }}
+                className="absolute top-1/2 -right-[88px] -translate-y-1/2 flex items-center gap-1 px-2 py-1 rounded-full pointer-events-none"
+                style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', backdropFilter: 'blur(8px)' }}>
+                <Activity size={8} style={{ color: '#60a5fa' }} />
+                <span className="text-[8px] font-semibold" style={{ color: 'rgba(147,197,253,0.9)' }}>Real-time tips</span>
+            </motion.div>
+
+            {/* 3D panel */}
+            <motion.div
+                animate={{ y: [-4, 4, -4] }}
+                transition={{ y: { duration: 4.5, repeat: Infinity, ease: 'easeInOut' } }}
+                className="flex flex-col overflow-hidden"
+                style={{
+                    rotateX: sRotX, rotateY: sRotY, transformStyle: 'preserve-3d',
+                    borderRadius: 18,
+                    background: 'linear-gradient(160deg, rgba(14,8,32,0.97) 0%, rgba(18,8,38,0.97) 100%)',
+                    boxShadow: '0 0 0 1px rgba(168,85,247,0.3), 0 20px 60px rgba(124,58,237,0.3), 0 4px 16px rgba(0,0,0,0.8)',
+                }}>
+                <div style={{ height: 2, background: 'linear-gradient(90deg,#7c3aed,#a855f7,#c084fc,#a855f7,#7c3aed)' }} />
+                <div className="flex items-center gap-2.5 px-3.5 py-2.5"
+                    style={{ borderBottom: '1px solid rgba(168,85,247,0.1)', background: 'rgba(124,58,237,0.05)' }}>
+                    <div className="relative flex-shrink-0">
+                        <div className="w-7 h-7 rounded-xl flex items-center justify-center"
+                            style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', boxShadow: '0 0 14px rgba(168,85,247,0.7)' }}>
+                            <Bot size={13} className="text-white" />
+                        </div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2"
+                            style={{ background: '#22c55e', borderColor: 'rgba(14,8,32,1)' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-bold text-white leading-none">Finexa AI</p>
+                        <p className="text-[8px] mt-0.5 truncate" style={{ color: 'rgba(160,148,210,0.5)' }}>Always analyzing · Always on</p>
+                    </div>
+                    <motion.div animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 2, repeat: Infinity }}
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded-full flex-shrink-0"
+                        style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                        <div className="w-1 h-1 rounded-full" style={{ background: '#22c55e', boxShadow: '0 0 4px #22c55e' }} />
+                        <span className="text-[7px] font-bold" style={{ color: '#4ade80' }}>Live</span>
+                    </motion.div>
+                </div>
+                <div className="px-3 pt-2.5 pb-2 space-y-2">
+                    <div className="flex justify-end">
+                        <div className="px-2.5 py-1.5 text-[9px] leading-relaxed rounded-2xl rounded-tr-sm"
+                            style={{ background: 'linear-gradient(135deg,#6d28d9,#a855f7)', color: '#fff', maxWidth: '75%', boxShadow: '0 4px 12px rgba(124,58,237,0.35)' }}>
+                            How do I improve my score? 🎯
+                        </div>
+                    </div>
+                    <div className="flex gap-1.5 items-end">
+                        <div className="w-4 h-4 rounded-md flex-shrink-0 flex items-center justify-center mb-0.5"
+                            style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)' }}>
+                            <Bot size={7} className="text-white" />
+                        </div>
+                        <div className="px-2.5 py-1.5 text-[9px] leading-relaxed rounded-2xl rounded-bl-sm"
+                            style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(168,85,247,0.18)', color: 'rgba(215,205,255,0.9)', maxWidth: '84%' }}>
+                            Cut dining by <span style={{ color: '#c084fc', fontWeight: 700 }}>₹2,400/mo</span> — score +<span style={{ color: '#4ade80', fontWeight: 700 }}>12 pts</span> 🚀
+                        </div>
+                    </div>
+                    <div className="flex gap-1.5 items-center pb-0.5">
+                        <div className="w-4 h-4 rounded-md flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)' }}>
+                            <Bot size={7} className="text-white" />
+                        </div>
+                        <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-2xl rounded-bl-sm"
+                            style={{ background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(168,85,247,0.12)' }}>
+                            {[0, 1, 2].map(i => (
+                                <motion.div key={i} className="w-1.5 h-1.5 rounded-full"
+                                    style={{ background: '#a855f7', boxShadow: '0 0 4px rgba(168,85,247,0.5)' }}
+                                    animate={{ y: [0, -3, 0], opacity: [0.5, 1, 0.5] }}
+                                    transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.2 }} />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 pb-3">
+                    <div className="flex-1 flex items-center px-2.5 py-2 rounded-2xl"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(168,85,247,0.14)' }}>
+                        <span className="text-[8px] flex-1" style={{ color: 'rgba(160,148,210,0.3)' }}>Ask your AI advisor…</span>
+                        <Sparkles size={8} style={{ color: 'rgba(168,85,247,0.3)' }} />
+                    </div>
+                    <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.94 }}
+                        className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', boxShadow: '0 0 12px rgba(168,85,247,0.5)' }}>
+                        <ArrowRight size={11} className="text-white" />
+                    </motion.div>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
+
 /* ════════════ MAIN PAGE ════════════ */
 export default function Landing() {
     const { user } = useAuth();
+    const { isDark } = useTheme();
+
     const [scrolled, setScrolled] = useState(false);
     useEffect(() => {
         const f = () => setScrolled(window.scrollY > 30);
@@ -217,31 +343,50 @@ export default function Landing() {
                 className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-6 md:px-12"
                 animate={{ backdropFilter: scrolled ? 'blur(24px)' : 'blur(12px)' }}
                 style={{
-                    background: scrolled ? 'rgba(5,5,15,0.9)' : 'rgba(5,5,15,0.5)',
-                    borderBottom: scrolled ? '1px solid rgba(168,85,247,0.15)' : '1px solid transparent',
-                    boxShadow: scrolled ? '0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(168,85,247,0.08)' : 'none',
+                    background: scrolled
+                        ? (isDark ? 'rgba(5,5,15,0.9)' : 'rgba(255,255,255,0.97)')
+                        : (isDark ? 'rgba(5,5,15,0.5)' : 'rgba(255,255,255,0.75)'),
+                    borderBottom: scrolled
+                        ? (isDark ? '1px solid rgba(168,85,247,0.15)' : '1px solid rgba(0,0,0,0.1)')
+                        : '1px solid transparent',
+                    boxShadow: scrolled
+                        ? (isDark
+                            ? '0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(168,85,247,0.08)'
+                            : '0 4px 20px rgba(0,0,0,0.08)')
+                        : 'none',
                     transition: 'all 0.4s ease',
                 }}>
                 {/* Logo LEFT */}
                 <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
                     <div className="relative">
-                        <div className="absolute -inset-1.5 rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-300"
-                            style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.55), transparent 70%)', filter: 'blur(6px)', animation: 'glowPulse 3s ease-in-out infinite' }} />
-                        <img src="/logo.png" alt="Finexa" className="relative w-9 h-9 object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.9)]" />
+                        {isDark && <div className="absolute -inset-1.5 rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-300"
+                            style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.55), transparent 70%)', filter: 'blur(6px)', animation: 'glowPulse 3s ease-in-out infinite' }} />}
+                        <img src="/logo.png" alt="Finexa" className="relative w-9 h-9 object-contain"
+                            style={{ filter: isDark ? 'drop-shadow(0 0 10px rgba(168,85,247,0.9))' : 'none' }} />
                     </div>
-                    <span className="font-display font-extrabold text-xl" style={{ background: 'linear-gradient(120deg,#fff 0%,#e8d5ff 50%,#c084fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', letterSpacing: '-0.01em' }}>Finexa</span>
+                    <span className="font-display font-extrabold text-xl"
+                        style={isDark
+                            ? { background: 'linear-gradient(120deg,#fff 0%,#e8d5ff 50%,#c084fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', letterSpacing: '-0.01em' }
+                            : { color: '#0a0a0a', letterSpacing: '-0.01em' }}>Finexa</span>
                 </Link>
 
                 {/* Nav RIGHT */}
                 <div className="flex items-center gap-5 md:gap-7 ml-auto">
-                    <div className="hidden md:flex items-center gap-6">
+                    <div className="hidden md:flex items-center gap-1">
                         {[['How It Works', '/how-it-works', false], ['Subscription', '/subscription', false], ['FAQ', '/faq', false]].map(([label, href, isHash]) => (
                             isHash
-                                ? <a key={String(label)} href={String(href)} className="text-sm font-medium transition-all duration-200" style={{ color: 'rgba(200,190,255,0.6)' }} onMouseEnter={e => (e.currentTarget.style.color = '#fff')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(200,190,255,0.6)')}>{label}</a>
-                                : <Link key={String(label)} to={String(href)} className="text-sm font-medium transition-all duration-200" style={{ color: 'rgba(200,190,255,0.6)' }} onMouseEnter={e => (e.currentTarget.style.color = '#fff')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(200,190,255,0.6)')}>{label}</Link>
+                                ? <a key={String(label)} href={String(href)}
+                                    className="text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-200"
+                                    style={{ color: isDark ? 'rgba(220,210,255,0.75)' : 'rgba(31,41,55,0.7)', background: 'transparent' }}
+                                    onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = isDark ? '#fff' : '#000'; el.style.background = isDark ? 'rgba(168,85,247,0.22)' : 'rgba(0,0,0,0.05)'; }}
+                                    onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = isDark ? 'rgba(220,210,255,0.75)' : 'rgba(31,41,55,0.7)'; el.style.background = 'transparent'; }}>{label}</a>
+                                : <Link key={String(label)} to={String(href)}
+                                    className="text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-200"
+                                    style={{ color: isDark ? 'rgba(220,210,255,0.75)' : 'rgba(31,41,55,0.7)', background: 'transparent' }}
+                                    onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = isDark ? '#fff' : '#000'; el.style.background = isDark ? 'rgba(168,85,247,0.22)' : 'rgba(0,0,0,0.05)'; }}
+                                    onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = isDark ? 'rgba(220,210,255,0.75)' : 'rgba(31,41,55,0.7)'; el.style.background = 'transparent'; }}>{label}</Link>
                         ))}
                     </div>
-                    {/* Credits + Score pills — only when logged in */}
                     {user && (
                         <div className="hidden lg:flex items-center gap-2">
                             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium"
@@ -249,29 +394,27 @@ export default function Landing() {
                                 <Zap size={9} style={{ color: '#f59e0b' }} />
                                 {user.ai_credits != null
                                     ? user.ai_credits >= 1000
-                                        ? `${(user.ai_credits / 1000).toFixed(1)}k credits`
+                                        ? `${(user.ai_credits / 1000).toFixed(0)}k credits`
                                         : `${user.ai_credits} credits`
                                     : '100k credits'}
                             </div>
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium"
-                                style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', color: 'rgba(16,185,129,0.85)' }}>
-                                <TrendingUp size={9} style={{ color: '#10b981' }} />
-                                Score 78
-                            </div>
+                            {/* Finexa Score */}
+                            <FinexaScorePill />
                         </div>
                     )}
 
-                    {/* Action buttons — auth-aware */}
-                    <div className="flex items-center gap-2.5">
+                    {/* Theme toggle + Action buttons */}
+                    <div className="flex items-center gap-2">
+                        <ThemeToggle />
                         {user ? (
                             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-                                <Link to="/dashboard" className="btn text-sm px-5 py-2.5">
-                                    Dashboard <ArrowRight size={14} />
+                                <Link to="/dashboard" className="btn text-xs px-3.5 py-1.5">
+                                    Dashboard <ArrowRight size={12} />
                                 </Link>
                             </motion.div>
                         ) : (
-                            <Link to="/signup" className="btn text-sm px-5 py-2.5">
-                                Get Started <ArrowRight size={14} />
+                            <Link to="/signup" className="btn text-xs px-3.5 py-1.5">
+                                Get Started <ArrowRight size={12} />
                             </Link>
                         )}
                     </div>
@@ -300,17 +443,20 @@ export default function Landing() {
                         <div>
                             <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
                                 className="inline-flex items-center gap-2 mb-5 px-3.5 py-1.5 rounded-full text-[11px] font-semibold"
-                                style={{ background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(168,85,247,0.28)', color: 'rgba(192,132,252,0.9)' }}>
+                                style={isDark
+                                    ? { background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(168,85,247,0.25)', color: 'var(--purple)' }
+                                    : { background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.15)', color: '#0a0a0a' }}>
                                 <motion.span animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }} transition={{ duration: 2, repeat: Infinity }}
-                                    className="w-1.5 h-1.5 rounded-full" style={{ background: '#a855f7', boxShadow: '0 0 6px #a855f7' }} />
+                                    className="w-1.5 h-1.5 rounded-full"
+                                    style={isDark ? { background: '#a855f7', boxShadow: '0 0 6px #a855f7' } : { background: '#0a0a0a' }} />
                                 <Sparkles size={10} /> AI-Powered Financial Intelligence
                             </motion.div>
 
                             <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }} className="mb-5">
                                 <h1 className="font-display font-black leading-[1.05]"
-                                    style={{ fontSize: 'clamp(2.6rem,5.5vw,4.2rem)', textShadow: '0 0 80px rgba(168,85,247,0.2)' }}>
+                                    style={{ fontSize: 'clamp(2.6rem,5.5vw,4.2rem)', textShadow: isDark ? '0 0 80px rgba(168,85,247,0.2)' : 'none' }}>
                                     <span className="text-gradient-hero">Your Financial</span><br />
-                                    <span style={{ color: '#fff' }}>Future, </span>
+                                    <span style={{ color: 'var(--text)' }}>Future, </span>
                                     <span className="text-gradient relative inline-block">
                                         Simplified.
                                     </span>
@@ -319,9 +465,9 @@ export default function Landing() {
 
                             <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.55 }}
                                 className="text-base leading-relaxed mb-7 max-w-lg"
-                                style={{ color: 'rgba(200,190,255,0.6)' }}>
+                                style={{ color: 'var(--text-2)' }}>
                                 Privacy-first AI coaching — health scoring, smart budgeting, risk simulations,
-                                digital wallet &amp; <span style={{ color: 'rgba(192,132,252,0.9)', fontWeight: 600 }}>100k free AI credits</span>.
+                                digital wallet & <span style={{ color: isDark ? 'var(--purple)' : '#0a0a0a', fontWeight: 600 }}>100k free AI credits</span>.
                             </motion.p>
 
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
@@ -333,22 +479,23 @@ export default function Landing() {
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.42 }}
                                 className="flex flex-wrap gap-4">
                                 {[{ i: Lock, t: 'Bank-grade privacy' }, { i: Shield, t: 'No data selling' }, { i: Zap, t: 'No credit card' }].map(b => (
-                                    <div key={b.t} className="flex items-center gap-1.5 text-xs" style={{ color: 'rgba(168,85,247,0.65)' }}>
+                                    <div key={b.t} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-3)' }}>
                                         <b.i size={11} style={{ color: 'var(--purple)' }} />{b.t}
                                     </div>
                                 ))}
                             </motion.div>
                         </div>
 
-                        {/* RIGHT — 3D card */}
+                        {/* RIGHT — card + AI advisor */}
                         <motion.div initial={{ opacity: 0, x: 50, scale: 0.93 }} animate={{ opacity: 1, x: 0, scale: 1 }}
                             transition={{ delay: 0.35, duration: 0.9, type: 'spring', stiffness: 75 }}
-                            className="flex justify-center items-center">
-                            <div className="relative">
-                                <div className="absolute -inset-16 pointer-events-none"
-                                    style={{ background: 'radial-gradient(ellipse 75% 65% at 50% 50%, rgba(124,58,237,0.38), transparent)', filter: 'blur(40px)' }} />
-                                <HeroCard3D />
-                            </div>
+                            className="flex flex-col items-center gap-4">
+
+                            {/* 3D Card */}
+                            <HeroCard3D />
+
+                            {/* AI Advisor */}
+                            <AIAdvisorCard />
                         </motion.div>
 
                     </div>
@@ -359,8 +506,8 @@ export default function Landing() {
                     <motion.div animate={{ y: [0, 8, 0], opacity: [0.4, 0.9, 0.4] }}
                         transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                         className="flex flex-col items-center gap-1">
-                        <div className="w-px h-7" style={{ background: 'linear-gradient(180deg,transparent,rgba(168,85,247,0.6),transparent)' }} />
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'rgba(168,85,247,0.7)' }} />
+                        <div className="w-px h-7" style={{ background: isDark ? 'linear-gradient(180deg,transparent,rgba(168,85,247,0.6),transparent)' : 'linear-gradient(180deg,transparent,rgba(0,0,0,0.3),transparent)' }} />
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: isDark ? 'rgba(168,85,247,0.7)' : 'rgba(0,0,0,0.4)' }} />
                     </motion.div>
                 </div>
 
@@ -370,7 +517,11 @@ export default function Landing() {
 
 
             {/* ═══ STATS BAR ═══ */}
-            <div className="relative py-12 overflow-hidden" style={{ background: 'rgba(10,8,25,0.98)', borderTop: '1px solid rgba(168,85,247,0.15)', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+            <div className="relative py-12 overflow-hidden" style={{
+                background: isDark ? 'rgba(10,8,25,0.98)' : '#f9fafb',
+                borderTop: isDark ? '1px solid rgba(168,85,247,0.15)' : '1px solid rgba(0,0,0,0.08)',
+                borderBottom: isDark ? '1px solid rgba(168,85,247,0.15)' : '1px solid rgba(0,0,0,0.08)',
+            }}>
                 <div className="absolute inset-0 dots-bg opacity-20 pointer-events-none" />
                 <div className="relative max-w-4xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
                     {[
@@ -383,7 +534,7 @@ export default function Landing() {
                             <div className="font-display font-black text-3xl md:text-4xl text-gradient mb-1.5">
                                 <Counter end={s.e} suffix={s.s} />
                             </div>
-                            <p className="text-xs" style={{ color: 'rgba(160,148,210,0.5)' }}>{s.l}</p>
+                            <p className="text-xs" style={{ color: isDark ? 'rgba(160,148,210,0.5)' : '#6b7280' }}>{s.l}</p>
                         </div>
                     ))}
                 </div>
@@ -403,7 +554,7 @@ export default function Landing() {
                             style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>
                             Powerful Features.<br /><span className="text-gradient">Total Financial Control.</span>
                         </h2>
-                        <p style={{ color: 'rgba(200,190,255,0.6)' }} className="text-base max-w-xl mx-auto">
+                        <p style={{ color: isDark ? 'rgba(200,190,255,0.6)' : '#6b7280' }} className="text-base max-w-xl mx-auto">
                             Everything you need to understand, improve, and master your financial life in one beautiful platform.
                         </p>
                     </div>
@@ -415,12 +566,14 @@ export default function Landing() {
                                 viewport={{ once: true }} transition={{ delay: i * 0.07 }}
                                 className="card hover-lift p-5 flex gap-4">
                                 <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                                    style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.22)' }}>
-                                    <f.icon size={19} style={{ color: 'var(--purple)' }} />
+                                    style={isDark
+                                        ? { background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.22)' }
+                                        : { background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)' }}>
+                                    <f.icon size={19} style={{ color: isDark ? 'var(--purple)' : '#0a0a0a' }} />
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-sm text-1 mb-1.5">{f.title}</h3>
-                                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(160,148,210,0.55)' }}>{f.desc}</p>
+                                    <p className="text-xs leading-relaxed" style={{ color: isDark ? 'rgba(160,148,210,0.55)' : '#6b7280' }}>{f.desc}</p>
                                 </div>
                             </motion.div>
                         ))}
@@ -430,23 +583,23 @@ export default function Landing() {
 
             {/* ═══ CAPABILITIES STRIP ═══ */}
             <section className="relative py-16 overflow-hidden"
-                style={{ background: 'linear-gradient(180deg,rgba(6,3,16,1) 0%,rgba(14,8,35,1) 50%,rgba(6,3,16,1) 100%)' }}>
+                style={{ background: isDark ? 'linear-gradient(180deg,rgba(6,3,16,1) 0%,rgba(14,8,35,1) 50%,rgba(6,3,16,1) 100%)' : '#f9fafb' }}>
                 <div className="absolute inset-0 pointer-events-none"
-                    style={{ background: 'radial-gradient(ellipse 60% 80% at 50% 50%, rgba(124,58,237,0.08), transparent)' }} />
+                    style={{ background: isDark ? 'radial-gradient(ellipse 60% 80% at 50% 50%, rgba(124,58,237,0.08), transparent)' : 'none' }} />
 
                 <motion.div className="text-center mb-10 px-6"
                     initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                    <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-2" style={{ color: 'rgba(168,85,247,0.5)' }}>All Inside Finexa</p>
-                    <h2 className="font-display font-black text-white" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.4rem)' }}>
+                    <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-2" style={{ color: isDark ? 'rgba(168,85,247,0.5)' : '#9ca3af' }}>All Inside Finexa</p>
+                    <h2 className="font-display font-black" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.4rem)', color: isDark ? '#fff' : '#0a0a0a' }}>
                         Powerful features. <span className="text-gradient">Total control.</span>
                     </h2>
                 </motion.div>
 
                 <div className="absolute left-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
-                    style={{ background: 'linear-gradient(90deg,rgba(6,3,16,1),transparent)' }} />
+                    style={{ background: isDark ? 'linear-gradient(90deg,rgba(6,3,16,1),transparent)' : 'linear-gradient(90deg,#f9fafb,transparent)' }} />
                 <div className="absolute right-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
-                    style={{ background: 'linear-gradient(270deg,rgba(6,3,16,1),transparent)' }} />
+                    style={{ background: isDark ? 'linear-gradient(270deg,rgba(6,3,16,1),transparent)' : 'linear-gradient(270deg,#f9fafb,transparent)' }} />
 
                 {/* Row 1 — left */}
                 <div className="relative mb-4 overflow-hidden">
@@ -468,12 +621,16 @@ export default function Landing() {
                             { icon: Zap, label: 'Instant Analysis_', color: '#f59e0b' },
                         ].map(f => (
                             <div key={f.label} className="flex items-center gap-3 px-5 py-3 rounded-2xl flex-shrink-0"
-                                style={{ background: `linear-gradient(135deg,${f.color}12,${f.color}06)`, border: `1px solid ${f.color}30`, boxShadow: `0 4px 24px ${f.color}12` }}>
+                                style={isDark
+                                    ? { background: `linear-gradient(135deg,${f.color}12,${f.color}06)`, border: `1px solid ${f.color}30`, boxShadow: `0 4px 24px ${f.color}12` }
+                                    : { background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                 <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                                    style={{ background: `${f.color}18`, border: `1px solid ${f.color}35` }}>
-                                    <f.icon size={15} style={{ color: f.color }} />
+                                    style={isDark
+                                        ? { background: `${f.color}18`, border: `1px solid ${f.color}35` }
+                                        : { background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)' }}>
+                                    <f.icon size={15} style={{ color: isDark ? f.color : '#374151' }} />
                                 </div>
-                                <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'rgba(220,210,255,0.8)' }}>{f.label.replace(/_/g, '').replace(/2$/, '')}</span>
+                                <span className="text-sm font-medium whitespace-nowrap" style={{ color: isDark ? 'rgba(220,210,255,0.8)' : '#1f2937' }}>{f.label.replace(/_/g, '').replace(/2$/, '')}</span>
                             </div>
                         ))}
                     </motion.div>
@@ -499,12 +656,16 @@ export default function Landing() {
                             { icon: PieChart, label: 'Anomaly Detection_', color: '#7c3aed' },
                         ].map(f => (
                             <div key={f.label} className="flex items-center gap-3 px-5 py-3 rounded-2xl flex-shrink-0"
-                                style={{ background: `linear-gradient(135deg,${f.color}12,${f.color}06)`, border: `1px solid ${f.color}30`, boxShadow: `0 4px 24px ${f.color}12` }}>
+                                style={isDark
+                                    ? { background: `linear-gradient(135deg,${f.color}12,${f.color}06)`, border: `1px solid ${f.color}30`, boxShadow: `0 4px 24px ${f.color}12` }
+                                    : { background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                 <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                                    style={{ background: `${f.color}18`, border: `1px solid ${f.color}35` }}>
-                                    <f.icon size={15} style={{ color: f.color }} />
+                                    style={isDark
+                                        ? { background: `${f.color}18`, border: `1px solid ${f.color}35` }
+                                        : { background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)' }}>
+                                    <f.icon size={15} style={{ color: isDark ? f.color : '#374151' }} />
                                 </div>
-                                <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'rgba(220,210,255,0.8)' }}>{f.label.replace(/_/g, '')}</span>
+                                <span className="text-sm font-medium whitespace-nowrap" style={{ color: isDark ? 'rgba(220,210,255,0.8)' : '#1f2937' }}>{f.label.replace(/_/g, '')}</span>
                             </div>
                         ))}
                     </motion.div>
@@ -513,9 +674,9 @@ export default function Landing() {
 
             {/* ═══ HOW IT WORKS — 3 STEPS ═══ */}
             <section className="py-24 relative overflow-hidden"
-                style={{ background: 'linear-gradient(180deg, #0a0618 0%, #130940 50%, #0a0618 100%)' }}>
+                style={{ background: isDark ? 'linear-gradient(180deg, #0a0618 0%, #130940 50%, #0a0618 100%)' : '#ffffff' }}>
                 <div className="absolute inset-0 grid-bg opacity-20 pointer-events-none" />
-                <Orb size={600} x="50%" y="50%" color="radial-gradient(circle, rgba(124,58,237,0.22), transparent 65%)" blur={100} delay={0} />
+                {isDark && <Orb size={600} x="50%" y="50%" color="radial-gradient(circle, rgba(124,58,237,0.22), transparent 65%)" blur={100} delay={0} />}
 
                 <div className="relative max-w-6xl mx-auto px-6 text-center">
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
@@ -523,7 +684,7 @@ export default function Landing() {
                         <h2 className="font-display font-black text-1 mb-4" style={{ fontSize: 'clamp(2rem,5vw,3.2rem)' }}>
                             Start in <span className="text-gradient">3 Simple Steps</span>
                         </h2>
-                        <p className="text-base max-w-xl mx-auto mb-14" style={{ color: 'rgba(200,190,255,0.55)' }}>
+                        <p className="text-base max-w-xl mx-auto mb-14" style={{ color: isDark ? 'rgba(200,190,255,0.55)' : '#6b7280' }}>
                             From sign-up to full financial clarity in minutes — no complexity, no jargon.
                         </p>
                     </motion.div>
@@ -539,14 +700,16 @@ export default function Landing() {
                                 className="card hover-lift p-7 text-center">
                                 <div className="relative inline-flex mb-6">
                                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                                        style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.27)' }}>
-                                        <s.icon size={22} style={{ color: 'var(--purple)' }} />
+                                        style={isDark
+                                            ? { background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.27)' }
+                                            : { background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.12)' }}>
+                                        <s.icon size={22} style={{ color: isDark ? 'var(--purple)' : '#0a0a0a' }} />
                                     </div>
                                     <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                                        style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)' }}>{parseInt(s.n)}</span>
+                                        style={{ background: isDark ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : '#0a0a0a' }}>{parseInt(s.n)}</span>
                                 </div>
                                 <h3 className="font-bold text-1 mb-2">{s.title}</h3>
-                                <p className="text-sm leading-relaxed" style={{ color: 'rgba(160,148,210,0.55)' }}>{s.desc}</p>
+                                <p className="text-sm leading-relaxed" style={{ color: isDark ? 'rgba(160,148,210,0.55)' : '#6b7280' }}>{s.desc}</p>
                             </motion.div>
                         ))}
                     </div>
@@ -561,15 +724,18 @@ export default function Landing() {
                         <h2 className="font-display font-black text-1 leading-tight mb-5" style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)' }}>
                             Your Personal<br /><span className="text-gradient">AI Financial Coach</span>
                         </h2>
-                        <p className="text-base leading-relaxed mb-6" style={{ color: 'rgba(200,190,255,0.6)' }}>
+                        <p className="text-base leading-relaxed mb-6" style={{ color: isDark ? 'rgba(200,190,255,0.6)' : '#6b7280' }}>
                             Ask anything. Get clear, personalised answers about budgeting, savings, emergency funds, and more —
                             powered by 100,000 free AI credits. Each message costs just 100 credits.
                         </p>
                         <ul className="space-y-3 mb-7">
                             {['Context-aware answers from your real financial data', 'ELI-15 mode for plain language explanations', 'Streaming word-by-word responses with copy support'].map(p => (
-                                <li key={p} className="flex items-center gap-2.5 text-sm" style={{ color: 'rgba(200,190,255,0.7)' }}>
-                                    <div className="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)' }}>
-                                        <Check size={11} style={{ color: 'var(--purple)' }} />
+                                <li key={p} className="flex items-center gap-2.5 text-sm" style={{ color: isDark ? 'rgba(200,190,255,0.7)' : '#374151' }}>
+                                    <div className="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0"
+                                        style={isDark
+                                            ? { background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)' }
+                                            : { background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.12)' }}>
+                                        <Check size={11} style={{ color: isDark ? 'var(--purple)' : '#0a0a0a' }} />
                                     </div>{p}
                                 </li>
                             ))}
@@ -579,9 +745,19 @@ export default function Landing() {
 
                     <motion.div initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
                         <div className="card-glow p-5 space-y-3">
-                            <div className="flex items-center gap-3 pb-4" style={{ borderBottom: '1px solid rgba(168,85,247,0.12)' }}>
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}><Bot size={15} className="text-white" /></div>
-                                <div><p className="text-sm font-semibold text-1">Finexa AI Coach</p><div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-green-400" /><p className="text-[10px] text-3">Online · 97,100 credits</p></div></div>
+                            <div className="flex items-center gap-3 pb-4"
+                                style={{ borderBottom: isDark ? '1px solid rgba(168,85,247,0.12)' : '1px solid rgba(0,0,0,0.08)' }}>
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                                    style={{ background: isDark ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : '#0a0a0a' }}>
+                                    <Bot size={15} className="text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-1">Finexa AI Coach</p>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                                        <p className="text-[10px] text-3">Online · 97,100 credits</p>
+                                    </div>
+                                </div>
                             </div>
                             {[
                                 { r: 'user', t: 'What is my financial health score?' },
@@ -590,19 +766,28 @@ export default function Landing() {
                                 { r: 'bot', t: 'Two moves: redirect your Rs 2,400 monthly entertainment overspend to emergency savings, and cancel your unused gym (-Rs 800/mo).' },
                             ].map((m, i) => (
                                 <div key={i} className={`flex gap-2 ${m.r === 'user' ? 'justify-end' : ''}`}>
-                                    {m.r === 'bot' && <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}><Bot size={10} className="text-white" /></div>}
+                                    {m.r === 'bot' && <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                                        style={{ background: isDark ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : '#0a0a0a' }}>
+                                        <Bot size={10} className="text-white" />
+                                    </div>}
                                     <div className="max-w-[78%] px-3 py-2 rounded-2xl text-[11px] leading-relaxed"
                                         style={m.r === 'user'
-                                            ? { background: 'linear-gradient(135deg, #6d28d9, #a855f7)', color: '#fff', borderRadius: '14px 14px 4px 14px' }
-                                            : { background: 'rgba(168,85,247,0.07)', color: 'rgba(200,190,255,0.8)', border: '1px solid rgba(168,85,247,0.14)', borderRadius: '14px 14px 14px 4px' }}>
+                                            ? { background: isDark ? 'linear-gradient(135deg, #6d28d9, #a855f7)' : '#0a0a0a', color: '#fff', borderRadius: '14px 14px 4px 14px' }
+                                            : { background: isDark ? 'rgba(168,85,247,0.07)' : 'rgba(0,0,0,0.04)', color: isDark ? 'rgba(200,190,255,0.8)' : '#374151', border: isDark ? '1px solid rgba(168,85,247,0.14)' : '1px solid rgba(0,0,0,0.08)', borderRadius: '14px 14px 14px 4px' }}>
                                         {m.t}
                                     </div>
                                 </div>
                             ))}
                             <div className="flex gap-2">
-                                <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}><Bot size={10} className="text-white" /></div>
-                                <div className="px-3 py-2 rounded-2xl flex items-center gap-1" style={{ background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.14)' }}>
-                                    {[0, 1, 2].map(i => <motion.div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--purple)' }} animate={{ y: [0, -4, 0] }} transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.13 }} />)}
+                                <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center"
+                                    style={{ background: isDark ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : '#0a0a0a' }}>
+                                    <Bot size={10} className="text-white" />
+                                </div>
+                                <div className="px-3 py-2 rounded-2xl flex items-center gap-1"
+                                    style={{ background: isDark ? 'rgba(168,85,247,0.07)' : 'rgba(0,0,0,0.04)', border: isDark ? '1px solid rgba(168,85,247,0.14)' : '1px solid rgba(0,0,0,0.08)' }}>
+                                    {[0, 1, 2].map(i => <motion.div key={i} className="w-1.5 h-1.5 rounded-full"
+                                        style={{ background: isDark ? 'var(--purple)' : '#374151' }}
+                                        animate={{ y: [0, -4, 0] }} transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.13 }} />)}
                                 </div>
                             </div>
                         </div>
@@ -637,42 +822,58 @@ export default function Landing() {
                             <motion.div key={plan.label}
                                 initial={{ opacity: 0, y: 30, scale: 0.96 }} whileInView={{ opacity: 1, y: 0, scale: 1 }}
                                 viewport={{ once: true }} transition={{ delay: i * 0.12, duration: 0.5 }}
-                                whileHover={{ y: -4, boxShadow: plan.popular ? '0 32px 80px rgba(168,85,247,0.35)' : '0 20px 60px rgba(124,58,237,0.2)' }}
+                                whileHover={{ y: -4 }}
                                 className="relative flex flex-col rounded-2xl overflow-hidden"
-                                style={{
-                                    background: plan.popular ? 'linear-gradient(145deg,#1a0845,#2d1060,#1a0845)' : 'rgba(12,8,30,0.95)',
-                                    border: `1px solid ${plan.popular ? 'rgba(168,85,247,0.45)' : 'rgba(168,85,247,0.15)'}`,
-                                    boxShadow: plan.popular ? '0 24px 60px rgba(124,58,237,0.3)' : '0 8px 30px rgba(0,0,0,0.4)',
-                                }}>
+                                style={isDark
+                                    ? {
+                                        background: plan.popular ? 'linear-gradient(145deg,#1a0845,#2d1060,#1a0845)' : 'rgba(12,8,30,0.95)',
+                                        border: `1px solid ${plan.popular ? 'rgba(168,85,247,0.45)' : 'rgba(168,85,247,0.15)'}`,
+                                        boxShadow: plan.popular ? '0 24px 60px rgba(124,58,237,0.3)' : '0 8px 30px rgba(0,0,0,0.4)',
+                                    }
+                                    : {
+                                        background: plan.popular ? '#0a0a0a' : '#ffffff',
+                                        border: `1px solid ${plan.popular ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.1)'}`,
+                                        boxShadow: plan.popular ? '0 16px 48px rgba(0,0,0,0.2)' : '0 4px 16px rgba(0,0,0,0.06)',
+                                    }}>
 
                                 {/* Top accent */}
-                                <div style={{ height: 2, background: `linear-gradient(90deg,transparent,${plan.color},transparent)` }} />
+                                <div style={{ height: 2, background: isDark ? `linear-gradient(90deg,transparent,${plan.color},transparent)` : plan.popular ? 'linear-gradient(90deg,transparent,#fff,transparent)' : 'linear-gradient(90deg,transparent,rgba(0,0,0,0.2),transparent)' }} />
 
                                 {plan.popular && (
                                     <div className="absolute top-4 right-4">
                                         <motion.span animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }}
                                             className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                                            style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', letterSpacing: '0.05em' }}>
+                                            style={isDark
+                                                ? { background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', letterSpacing: '0.05em' }
+                                                : { background: '#ffffff', color: '#0a0a0a', letterSpacing: '0.05em' }}>
                                             MOST POPULAR
                                         </motion.span>
                                     </div>
                                 )}
 
                                 <div className="p-7 flex flex-col flex-1">
-                                    <p className="text-xs font-semibold tracking-widest mb-3" style={{ color: plan.color }}>{plan.label.toUpperCase()}</p>
+                                    <p className="text-xs font-semibold tracking-widest mb-3"
+                                        style={{ color: isDark ? plan.color : plan.popular ? '#ffffff' : '#374151' }}>{plan.label.toUpperCase()}</p>
                                     <div className="mb-1">
-                                        <span className="font-display font-black text-4xl text-white">{plan.price}</span>
-                                        <span className="text-sm ml-1" style={{ color: 'rgba(180,165,230,0.45)' }}>one-time</span>
+                                        <span className="font-display font-black text-4xl"
+                                            style={{ color: isDark ? '#ffffff' : plan.popular ? '#ffffff' : '#0a0a0a' }}>{plan.price}</span>
+                                        <span className="text-sm ml-1"
+                                            style={{ color: isDark ? 'rgba(180,165,230,0.45)' : plan.popular ? 'rgba(255,255,255,0.55)' : '#9ca3af' }}>one-time</span>
                                     </div>
-                                    <p className="text-sm font-semibold mb-1" style={{ color: plan.color }}>{plan.credits} credits</p>
-                                    <p className="text-xs mb-6" style={{ color: 'rgba(160,148,210,0.45)' }}>{plan.per}</p>
+                                    <p className="text-sm font-semibold mb-1"
+                                        style={{ color: isDark ? plan.color : plan.popular ? 'rgba(255,255,255,0.8)' : '#374151' }}>{plan.credits} credits</p>
+                                    <p className="text-xs mb-6"
+                                        style={{ color: isDark ? 'rgba(160,148,210,0.45)' : plan.popular ? 'rgba(255,255,255,0.45)' : '#9ca3af' }}>{plan.per}</p>
 
                                     <ul className="space-y-2.5 mb-8 flex-1">
                                         {plan.features.map(f => (
-                                            <li key={f} className="flex items-center gap-2.5 text-sm" style={{ color: 'rgba(200,190,255,0.7)' }}>
+                                            <li key={f} className="flex items-center gap-2.5 text-sm"
+                                                style={{ color: isDark ? 'rgba(200,190,255,0.7)' : plan.popular ? 'rgba(255,255,255,0.85)' : '#374151' }}>
                                                 <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                                                    style={{ background: `${plan.color}20`, border: `1px solid ${plan.color}40` }}>
-                                                    <Check size={9} style={{ color: plan.color }} />
+                                                    style={isDark
+                                                        ? { background: `${plan.color}20`, border: `1px solid ${plan.color}40` }
+                                                        : { background: plan.popular ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)', border: plan.popular ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(0,0,0,0.12)' }}>
+                                                    <Check size={9} style={{ color: isDark ? plan.color : plan.popular ? '#ffffff' : '#0a0a0a' }} />
                                                 </div>
                                                 {f}
                                             </li>
@@ -681,9 +882,13 @@ export default function Landing() {
 
                                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                                         className="w-full py-3 rounded-xl text-sm font-semibold relative overflow-hidden group"
-                                        style={plan.popular
-                                            ? { background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', boxShadow: '0 8px 24px rgba(124,58,237,0.4)' }
-                                            : { background: 'rgba(168,85,247,0.08)', color: 'rgba(192,132,252,0.9)', border: '1px solid rgba(168,85,247,0.25)' }}>
+                                        style={isDark
+                                            ? (plan.popular
+                                                ? { background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', boxShadow: '0 8px 24px rgba(124,58,237,0.4)' }
+                                                : { background: 'rgba(168,85,247,0.08)', color: 'rgba(192,132,252,0.9)', border: '1px solid rgba(168,85,247,0.25)' })
+                                            : (plan.popular
+                                                ? { background: '#ffffff', color: '#0a0a0a', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }
+                                                : { background: '#0a0a0a', color: '#ffffff', border: '1px solid rgba(0,0,0,0.8)' })}>
                                         <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none"
                                             style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent)' }} />
                                         Buy {plan.credits} Credits
@@ -702,8 +907,8 @@ export default function Landing() {
 
             {/* ═══ CTA ═══ */}
             <section className="py-24 px-6 relative overflow-hidden"
-                style={{ background: 'linear-gradient(180deg, var(--bg) 0%, #110830 50%, var(--bg) 100%)' }}>
-                <Orb size={700} x="50%" y="50%" color="radial-gradient(circle, rgba(124,58,237,0.38), transparent 65%)" blur={100} delay={0} />
+                style={{ background: isDark ? 'linear-gradient(180deg, var(--bg) 0%, #110830 50%, var(--bg) 100%)' : '#f9fafb' }}>
+                {isDark && <Orb size={700} x="50%" y="50%" color="radial-gradient(circle, rgba(124,58,237,0.38), transparent 65%)" blur={100} delay={0} />}
                 <div className="absolute inset-0 grid-bg opacity-25 pointer-events-none" />
 
                 <div className="relative max-w-2xl mx-auto text-center">
@@ -712,7 +917,7 @@ export default function Landing() {
                         <h2 className="font-display font-black text-1 leading-tight mb-5" style={{ fontSize: 'clamp(2rem, 5vw, 3.6rem)' }}>
                             Start Your Journey.<br /><span className="text-gradient">Free. Today.</span>
                         </h2>
-                        <p className="text-base mb-10 max-w-md mx-auto" style={{ color: 'rgba(200,190,255,0.6)' }}>
+                        <p className="text-base mb-10 max-w-md mx-auto" style={{ color: isDark ? 'rgba(200,190,255,0.6)' : '#6b7280' }}>
                             No credit card. No investment advice. Just powerful AI coaching for your financial future.
                         </p>
                         <div className="flex flex-wrap gap-4 justify-center mb-10">
@@ -721,8 +926,8 @@ export default function Landing() {
                         </div>
                         <div className="flex flex-wrap gap-5 justify-center">
                             {['No credit card', 'Privacy-first', 'Cancel anytime', '100k credits'].map(f => (
-                                <div key={f} className="flex items-center gap-1.5 text-xs" style={{ color: 'rgba(168,85,247,0.7)' }}>
-                                    <Check size={11} style={{ color: 'var(--purple)' }} /> {f}
+                                <div key={f} className="flex items-center gap-1.5 text-xs" style={{ color: isDark ? 'rgba(168,85,247,0.7)' : '#6b7280' }}>
+                                    <Check size={11} style={{ color: isDark ? 'var(--purple)' : '#0a0a0a' }} /> {f}
                                 </div>
                             ))}
                         </div>
@@ -731,26 +936,34 @@ export default function Landing() {
             </section>
 
             {/* ═══ FOOTER ═══ */}
-            <footer style={{ borderTop: '1px solid rgba(168,85,247,0.12)', background: 'rgba(4,4,12,0.98)' }}>
+            <footer style={{
+                borderTop: isDark ? '1px solid rgba(168,85,247,0.12)' : '1px solid rgba(0,0,0,0.08)',
+                background: isDark ? 'rgba(4,4,12,0.98)' : '#f9fafb',
+            }}>
                 <div className="max-w-6xl mx-auto px-6 py-12">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
                         <div className="md:col-span-2">
                             <div className="flex items-center gap-2.5 mb-3">
                                 <div className="relative">
-                                    <div className="absolute -inset-1 rounded-full opacity-50" style={{ background: 'radial-gradient(circle,rgba(168,85,247,0.5),transparent 70%)', filter: 'blur(4px)' }} />
-                                    <img src="/logo.png" alt="Finexa" className="relative w-6 h-6 object-contain drop-shadow-[0_0_7px_rgba(168,85,247,0.8)]" />
+                                    {isDark && <div className="absolute -inset-1 rounded-full opacity-50" style={{ background: 'radial-gradient(circle,rgba(168,85,247,0.5),transparent 70%)', filter: 'blur(4px)' }} />}
+                                    <img src="/logo.png" alt="Finexa" className="relative w-6 h-6 object-contain"
+                                        style={{ filter: isDark ? 'drop-shadow(0 0 7px rgba(168,85,247,0.8))' : 'none' }} />
                                 </div>
-                                <span className="font-display font-extrabold text-lg" style={{ background: 'linear-gradient(120deg,#fff 0%,#e8d5ff 50%,#c084fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Finexa</span>
+                                <span className="font-display font-extrabold text-lg"
+                                    style={isDark
+                                        ? { background: 'linear-gradient(120deg,#fff 0%,#e8d5ff 50%,#c084fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }
+                                        : { color: '#0a0a0a' }}>Finexa</span>
                             </div>
-                            <p className="text-xs leading-relaxed max-w-xs" style={{ color: 'rgba(160,148,210,0.45)' }}>AI-powered financial coaching. Privacy-first. Educational only. Not investment advice.</p>
+                            <p className="text-xs leading-relaxed max-w-xs" style={{ color: isDark ? 'rgba(160,148,210,0.45)' : '#9ca3af' }}>AI-powered financial coaching. Privacy-first. Educational only. Not investment advice.</p>
                         </div>
                         <div>
                             <p className="text-xs font-semibold text-1 mb-3">Product</p>
                             <div className="space-y-2">
                                 {['Features', 'How It Works', 'AI Coach', 'Wallet'].map(l => (
-                                    <a key={l} href="#features" className="block text-xs transition-colors" style={{ color: 'rgba(160,148,210,0.45)' }}
-                                        onMouseEnter={e => e.currentTarget.style.color = 'rgba(200,190,255,0.7)'}
-                                        onMouseLeave={e => e.currentTarget.style.color = 'rgba(160,148,210,0.45)'}>{l}</a>
+                                    <a key={l} href="#features" className="block text-xs transition-colors"
+                                        style={{ color: isDark ? 'rgba(160,148,210,0.45)' : '#9ca3af' }}
+                                        onMouseEnter={e => e.currentTarget.style.color = isDark ? 'rgba(200,190,255,0.7)' : '#0a0a0a'}
+                                        onMouseLeave={e => e.currentTarget.style.color = isDark ? 'rgba(160,148,210,0.45)' : '#9ca3af'}>{l}</a>
                                 ))}
                             </div>
                         </div>
@@ -758,16 +971,18 @@ export default function Landing() {
                             <p className="text-xs font-semibold text-1 mb-3">Account</p>
                             <div className="space-y-2">
                                 {[{ l: 'Sign In', to: '/login' }, { l: 'Create Account', to: '/signup' }, { l: 'Dashboard', to: '/dashboard' }].map(l => (
-                                    <Link key={l.l} to={l.to} className="block text-xs transition-colors" style={{ color: 'rgba(160,148,210,0.45)' }}
-                                        onMouseEnter={e => e.currentTarget.style.color = 'rgba(200,190,255,0.7)'}
-                                        onMouseLeave={e => e.currentTarget.style.color = 'rgba(160,148,210,0.45)'}>{l.l}</Link>
+                                    <Link key={l.l} to={l.to} className="block text-xs transition-colors"
+                                        style={{ color: isDark ? 'rgba(160,148,210,0.45)' : '#9ca3af' }}
+                                        onMouseEnter={e => e.currentTarget.style.color = isDark ? 'rgba(200,190,255,0.7)' : '#0a0a0a'}
+                                        onMouseLeave={e => e.currentTarget.style.color = isDark ? 'rgba(160,148,210,0.45)' : '#9ca3af'}>{l.l}</Link>
                                 ))}
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center justify-between pt-5" style={{ borderTop: '1px solid rgba(168,85,247,0.1)' }}>
-                        <p className="text-[11px]" style={{ color: 'rgba(160,148,210,0.35)' }}>Not investment advice. Educational purposes only.</p>
-                        <p className="text-[11px]" style={{ color: 'rgba(160,148,210,0.35)' }}>&copy; 2026 Finexa.</p>
+                    <div className="flex items-center justify-between pt-5"
+                        style={{ borderTop: isDark ? '1px solid rgba(168,85,247,0.1)' : '1px solid rgba(0,0,0,0.08)' }}>
+                        <p className="text-[11px]" style={{ color: isDark ? 'rgba(160,148,210,0.35)' : '#9ca3af' }}>Not investment advice. Educational purposes only.</p>
+                        <p className="text-[11px]" style={{ color: isDark ? 'rgba(160,148,210,0.35)' : '#9ca3af' }}>&copy; 2026 Finexa.</p>
                     </div>
                 </div>
             </footer>

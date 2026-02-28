@@ -1,10 +1,52 @@
 import { motion } from 'framer-motion';
+import { useTheme } from '../contexts/ThemeContext';
 
-/**
- * Shared auth-page background — rich but not overwhelming.
- * Drop this as the first child inside the page's root div.
- */
 export default function AuthBg() {
+    const { isDark } = useTheme();
+
+    if (!isDark) {
+        // Light mode: clean white with subtle gray grid and soft shadow blobs
+        return (
+            <>
+                <div className="absolute inset-0 pointer-events-none" style={{ background: '#ffffff' }} />
+                {/* Subtle grid */}
+                <div className="absolute inset-0 pointer-events-none"
+                    style={{
+                        backgroundImage:
+                            'linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),' +
+                            'linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)',
+                        backgroundSize: '40px 40px',
+                    }}
+                />
+                {/* Very soft shadow orbs — gray tones */}
+                <motion.div className="absolute rounded-full pointer-events-none"
+                    animate={{ x: [0, 16, 0], y: [0, -12, 0] }}
+                    transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+                    style={{
+                        width: 500, height: 500,
+                        top: '-100px', left: '-100px',
+                        background: 'radial-gradient(circle, rgba(0,0,0,0.03) 0%, transparent 70%)',
+                        filter: 'blur(48px)',
+                    }}
+                />
+                <motion.div className="absolute rounded-full pointer-events-none"
+                    animate={{ x: [0, -14, 0], y: [0, 10, 0] }}
+                    transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+                    style={{
+                        width: 400, height: 400,
+                        bottom: '-60px', right: '-60px',
+                        background: 'radial-gradient(circle, rgba(0,0,0,0.04) 0%, transparent 70%)',
+                        filter: 'blur(40px)',
+                    }}
+                />
+                {/* Top hairline */}
+                <div className="absolute top-0 left-0 right-0 pointer-events-none"
+                    style={{ height: 1, background: 'rgba(0,0,0,0.08)' }}
+                />
+            </>
+        );
+    }
+
     return (
         <>
             {/* Deep base */}

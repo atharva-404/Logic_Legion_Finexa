@@ -23,7 +23,7 @@ function ScoreGauge({ score, size = 140 }: { score: number; size?: number }) {
                 fill="none" stroke={color} strokeWidth={size * 0.07} strokeLinecap="round"
                 strokeDasharray={dash} initial={{ strokeDashoffset: dash }}
                 animate={{ strokeDashoffset: offset }} transition={{ duration: 1.5, ease: 'easeOut', delay: 0.3 }} />
-            <text x={cx} y={cy - 10} textAnchor="middle" fontSize={size * 0.22} fontWeight="700" fill="white">{score}</text>
+            <text x={cx} y={cy - 10} textAnchor="middle" fontSize={size * 0.22} fontWeight="700" fill="var(--text)">{score}</text>
             <text x={cx} y={cy + 12} textAnchor="middle" fontSize={size * 0.08} fill={color} fontWeight="600">{getHealthLabel(score).label.toUpperCase()}</text>
         </svg>
     );
@@ -32,13 +32,13 @@ function ScoreGauge({ score, size = 140 }: { score: number; size?: number }) {
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-        <div className="glass-card p-3 text-xs">
-            <p className="text-slate-400 mb-2">{label}</p>
+        <div className="card p-3 text-xs" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+            <p className="text-3 mb-2">{label}</p>
             {payload.map((p: any) => (
                 <div key={p.name} className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ background: p.color }} />
-                    <span className="text-slate-300 capitalize">{p.name}:</span>
-                    <span className="text-white font-medium">{formatCurrency(p.value)}</span>
+                    <span className="text-2 capitalize">{p.name}:</span>
+                    <span className="text-1 font-medium">{formatCurrency(p.value)}</span>
                 </div>
             ))}
         </div>
@@ -46,10 +46,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function Overview() {
-    const { monthlyIncome, monthlyExpenses, emergencySavings } = useFinancialStore();
+    const { monthlyIncome, monthlyExpenses, emergencySavings, healthScore } = useFinancialStore();
     const savings = monthlyIncome - monthlyExpenses;
     const savingsRate = ((savings / monthlyIncome) * 100).toFixed(1);
-    const healthScore = 74;
     const stressScore = 42;
     const { label: stressLabel, color: stressColor } = getStressLevel(stressScore);
     const emergency = calculateEmergencyBuffer(monthlyExpenses, emergencySavings);
@@ -60,13 +59,13 @@ export default function Overview() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="font-display font-bold text-2xl text-white">Financial Overview</h1>
-                    <p className="text-slate-500 text-sm mt-1">February 2026 · Your financial snapshot</p>
+                    <h1 className="font-display font-bold text-2xl text-1">Financial Overview</h1>
+                    <p className="text-3 text-sm mt-1">February 2026 · Your financial snapshot</p>
                 </div>
                 <motion.div animate={{ scale: [1, 1.02, 1] }} transition={{ duration: 3, repeat: Infinity }}
                     className="text-xs px-3 py-1.5 rounded-full font-medium"
                     style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', color: '#10b981' }}>
-                    ↑ Score improved +8 this month
+                    ↑ Score: {healthScore} / 100
                 </motion.div>
             </div>
 
@@ -74,25 +73,25 @@ export default function Overview() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Health Score */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}
-                    className="glass-card p-5 sm:col-span-2 lg:col-span-1 flex flex-col items-center">
-                    <p className="text-slate-400 text-xs uppercase tracking-widest mb-2">Health Score</p>
+                    className="card p-5 sm:col-span-2 lg:col-span-1 flex flex-col items-center">
+                    <p className="text-3 text-[10px] uppercase font-bold tracking-widest mb-4">Health Score</p>
                     <ScoreGauge score={healthScore} size={140} />
                     <div className="mt-2 text-center">
-                        <p className="text-green-400 text-xs font-medium">↑ +8 from last month</p>
+                        <p className="text-green-500 text-xs font-semibold">↑ Improving over time</p>
                     </div>
                 </motion.div>
 
                 {/* Stress Score */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                    className="glass-card p-5 flex flex-col justify-between">
+                    className="card p-5 flex flex-col justify-between">
                     <div className="flex items-start justify-between">
-                        <p className="text-slate-400 text-xs uppercase tracking-widest">Stress Level</p>
+                        <p className="text-3 text-[10px] uppercase font-bold tracking-widest">Stress Level</p>
                         <AlertTriangle size={16} style={{ color: stressColor }} />
                     </div>
                     <div>
-                        <div className="text-4xl font-bold text-white my-2">{stressScore}</div>
+                        <div className="text-4xl font-bold text-1 my-2">{stressScore}</div>
                         <div className="text-sm font-semibold mb-2" style={{ color: stressColor }}>{stressLabel}</div>
-                        <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                        <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden" style={{ border: '1px solid var(--border)' }}>
                             <motion.div className="h-full rounded-full" initial={{ width: 0 }}
                                 animate={{ width: `${stressScore}%` }} transition={{ duration: 1.2, ease: 'easeOut' }}
                                 style={{ background: stressColor }} />
@@ -102,31 +101,31 @@ export default function Overview() {
 
                 {/* Monthly Savings */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                    className="glass-card p-5 flex flex-col justify-between">
+                    className="card p-5 flex flex-col justify-between">
                     <div className="flex items-start justify-between">
-                        <p className="text-slate-400 text-xs uppercase tracking-widest">Monthly Savings</p>
-                        <TrendingUp size={16} className="text-green-400" />
+                        <p className="text-3 text-[10px] uppercase font-bold tracking-widest">Monthly Savings</p>
+                        <TrendingUp size={16} className="text-green-500" />
                     </div>
                     <div>
-                        <div className="text-3xl font-bold text-white my-2">{formatCurrency(savings)}</div>
-                        <div className="text-green-400 text-sm font-semibold">{savingsRate}% of income</div>
-                        <p className="text-slate-500 text-xs mt-1">Excellent! Target is 20%</p>
+                        <div className="text-3xl font-bold text-1 my-2">{formatCurrency(savings)}</div>
+                        <div className="text-green-500 text-sm font-semibold">{savingsRate}% of income</div>
+                        <p className="text-3 text-xs mt-1">Excellent! Target is 20%</p>
                     </div>
                 </motion.div>
 
                 {/* Emergency Buffer */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                    className="glass-card p-5 flex flex-col justify-between">
+                    className="card p-5 flex flex-col justify-between">
                     <div className="flex items-start justify-between">
-                        <p className="text-slate-400 text-xs uppercase tracking-widest">Emergency Buffer</p>
-                        <DollarSign size={16} className="text-yellow-400" />
+                        <p className="text-3 text-[10px] uppercase font-bold tracking-widest">Emergency Buffer</p>
+                        <DollarSign size={16} className="text-yellow-600" />
                     </div>
                     <div>
-                        <div className="text-3xl font-bold text-white my-2">{emergency.monthsCovered}mo</div>
-                        <div className="text-yellow-400 text-sm font-semibold">
+                        <div className="text-3xl font-bold text-1 my-2">{emergency.monthsCovered}mo</div>
+                        <div className="text-yellow-600 text-sm font-semibold">
                             {emergency.isSafe ? 'On Track' : 'Below Target'}
                         </div>
-                        <p className="text-slate-500 text-xs mt-1">Target: 3–6 months</p>
+                        <p className="text-3 text-xs mt-1">Target: 3–6 months</p>
                     </div>
                 </motion.div>
             </div>
@@ -136,15 +135,15 @@ export default function Overview() {
                 {[
                     { label: 'Monthly Income', value: formatCurrency(monthlyIncome), icon: TrendingUp, color: '#10b981' },
                     { label: 'Monthly Expenses', value: formatCurrency(monthlyExpenses), icon: TrendingDown, color: '#ef4444' },
-                    { label: 'Savings Rate', value: `${savingsRate}%`, icon: TrendingUp, color: '#a855f7' },
+                    { label: 'Savings Rate', value: `${savingsRate}%`, icon: TrendingUp, color: 'var(--purple)' },
                 ].map((stat, i) => (
                     <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 * i + 0.4 }}
-                        className="glass-card p-4">
+                        className="card p-4">
                         <div className="flex items-center gap-2 mb-1">
                             <stat.icon size={14} style={{ color: stat.color }} />
-                            <span className="text-slate-500 text-xs">{stat.label}</span>
+                            <span className="text-3 text-xs font-semibold">{stat.label}</span>
                         </div>
-                        <div className="text-xl font-bold text-white">{stat.value}</div>
+                        <div className="text-xl font-bold text-1">{stat.value}</div>
                     </motion.div>
                 ))}
             </div>
@@ -153,33 +152,33 @@ export default function Overview() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* Score trend */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-                    className="glass-card p-5">
+                    className="card p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-white font-semibold">Health Score Trend</h3>
-                        <span className="text-xs text-slate-500">Last 6 months</span>
+                        <h3 className="text-1 font-semibold">Health Score Trend</h3>
+                        <span className="text-xs text-3">Last 6 months</span>
                     </div>
                     <ResponsiveContainer width="100%" height={200}>
                         <AreaChart data={monthlyHistory}>
                             <defs>
                                 <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                                    <stop offset="5%" stopColor="var(--purple)" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="var(--purple)" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <XAxis dataKey="month" stroke="#475569" tick={{ fontSize: 11 }} />
-                            <YAxis domain={[0, 100]} stroke="#475569" tick={{ fontSize: 11 }} />
+                            <XAxis dataKey="month" stroke="var(--text-3)" tick={{ fontSize: 11 }} />
+                            <YAxis domain={[0, 100]} stroke="var(--text-3)" tick={{ fontSize: 11 }} />
                             <Tooltip content={<CustomTooltip />} />
-                            <Area type="monotone" dataKey="healthScore" stroke="#a855f7" fill="url(#scoreGrad)" strokeWidth={2} dot={{ fill: '#a855f7', r: 4 }} />
+                            <Area type="monotone" dataKey="healthScore" stroke="var(--purple)" fill="url(#scoreGrad)" strokeWidth={2} dot={{ fill: 'var(--purple)', r: 4 }} />
                         </AreaChart>
                     </ResponsiveContainer>
                 </motion.div>
 
                 {/* Income vs Expenses */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-                    className="glass-card p-5">
+                    className="card p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-white font-semibold">Income vs Expenses</h3>
-                        <span className="text-xs text-slate-500">Last 6 months</span>
+                        <h3 className="text-1 font-semibold">Income vs Expenses</h3>
+                        <span className="text-xs text-3">Last 6 months</span>
                     </div>
                     <ResponsiveContainer width="100%" height={200}>
                         <AreaChart data={monthlyHistory}>
@@ -193,8 +192,8 @@ export default function Overview() {
                                     <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <XAxis dataKey="month" stroke="#475569" tick={{ fontSize: 11 }} />
-                            <YAxis stroke="#475569" tick={{ fontSize: 11 }} tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} />
+                            <XAxis dataKey="month" stroke="var(--text-3)" tick={{ fontSize: 11 }} />
+                            <YAxis stroke="var(--text-3)" tick={{ fontSize: 11 }} tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} />
                             <Tooltip content={<CustomTooltip />} />
                             <Area type="monotone" dataKey="income" stroke="#10b981" fill="url(#incGrad)" strokeWidth={2} />
                             <Area type="monotone" dataKey="expenses" stroke="#ef4444" fill="url(#expGrad)" strokeWidth={2} />
@@ -206,28 +205,28 @@ export default function Overview() {
             {/* Overspend alerts */}
             {overBudget.length > 0 && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
-                    className="glass-card p-5">
+                    className="card p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-white font-semibold flex items-center gap-2">
-                            <AlertTriangle size={16} className="text-yellow-400" /> Budget Alerts
+                        <h3 className="text-1 font-semibold flex items-center gap-2">
+                            <AlertTriangle size={16} className="text-yellow-600" /> Budget Alerts
                         </h3>
-                        <Link to="/dashboard/spending" className="text-purple-400 text-xs hover:text-purple-300 flex items-center gap-1">
+                        <Link to="/dashboard/spending" className="text-purple-600 dark:text-purple-400 text-xs hover:underline flex items-center gap-1">
                             View All <ArrowUpRight size={12} />
                         </Link>
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {overBudget.slice(0, 3).map(cat => (
                             <div key={cat.name} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                     <span className="text-lg">{cat.icon}</span>
                                     <div>
-                                        <p className="text-sm text-white font-medium">{cat.name}</p>
-                                        <p className="text-xs text-red-400">₹{(cat.amount - cat.budget).toLocaleString()} over budget</p>
+                                        <p className="text-sm text-1 font-semibold">{cat.name}</p>
+                                        <p className="text-xs text-red-500 font-medium">₹{(cat.amount - cat.budget).toLocaleString()} over budget</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm text-white">{formatCurrency(cat.amount)}</p>
-                                    <p className="text-xs text-slate-500">Budget: {formatCurrency(cat.budget)}</p>
+                                    <p className="text-sm font-bold text-1">{formatCurrency(cat.amount)}</p>
+                                    <p className="text-[10px] text-3">Budget: {formatCurrency(cat.budget)}</p>
                                 </div>
                             </div>
                         ))}

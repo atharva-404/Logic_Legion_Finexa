@@ -30,6 +30,52 @@
         --glow-white: rgba(255, 255, 255, 0.06);
     }
 
+    /* ── Light theme — purple, black & white ───────────── */
+    html.light {
+        --bg: #ffffff;
+        --bg-2: #fbf7ff;
+        --surface: rgba(255, 255, 255, 0.95);
+        --surface-2: rgba(251, 247, 255, 0.92);
+        --card: rgba(255, 255, 255, 1);
+        --border: rgba(124, 58, 237, 0.12);
+        --border-hi: rgba(124, 58, 237, 0.35);
+
+        --purple: #7c3aed;
+        --purple-dark: #6d28d9;
+        --purple-light: #a855f7;
+        --purple-dim: rgba(124, 58, 237, 0.08);
+
+        --text: #0a0a0a;
+        --text-2: #4a3a6a;
+        --text-3: #8a7fb0;
+
+        --glow: rgba(124, 58, 237, 0.12);
+        --glow-strong: rgba(124, 58, 237, 0.22);
+        --glow-white: rgba(255, 255, 255, 0.03);
+    }
+
+    html.light body {
+        background: var(--bg);
+        color: var(--text);
+    }
+
+    html.light ::-webkit-scrollbar-track {
+        background: #f3f4f6;
+    }
+
+    html.light ::-webkit-scrollbar-thumb {
+        background: rgba(107, 114, 128, 0.4);
+    }
+
+    html.light ::-webkit-scrollbar-thumb:hover {
+        background: rgba(17, 24, 39, 0.5);
+    }
+
+    html.light input[type=date],
+    html.light select {
+        color-scheme: light;
+    }
+
     *,
     *::before,
     *::after {
@@ -361,6 +407,155 @@
     .section-purple {
         background: linear-gradient(180deg, #08061a 0%, #130a38 50%, #08061a 100%);
     }
+
+    /* ── Light-mode component overrides — black & white ── */
+    html.light .card {
+        background: #ffffff;
+        border-color: rgba(209, 213, 219, 0.9);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.04);
+    }
+
+    html.light .card:hover {
+        border-color: rgba(107, 114, 128, 0.4);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06);
+    }
+
+    html.light .card-glow {
+        background: #ffffff;
+        border-color: rgba(209, 213, 219, 0.9);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+    }
+
+    html.light .card-white {
+        background: #f9fafb;
+        border-color: rgba(209, 213, 219, 0.8);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    html.light .btn {
+        background: #0a0a0a;
+        color: #ffffff;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.6);
+    }
+
+    html.light .btn:hover {
+        background: #1f2937;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.7);
+    }
+
+    html.light .btn:active {
+        background: #111827;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    html.light .btn-outline {
+        border-color: rgba(17, 24, 39, 0.25);
+        color: #1f2937;
+        background: transparent;
+    }
+
+    html.light .btn-outline:hover {
+        background: #f9fafb;
+        border-color: rgba(17, 24, 39, 0.4);
+        color: #0a0a0a;
+    }
+
+    html.light .btn-ghost {
+        color: #6b7280;
+    }
+
+    html.light .btn-ghost:hover {
+        background: #f3f4f6;
+        color: #1f2937;
+    }
+
+    html.light .btn-purple-outline {
+        border-color: rgba(17, 24, 39, 0.3);
+        color: #0a0a0a;
+        background: transparent;
+    }
+
+    html.light .btn-purple-outline:hover {
+        background: #f3f4f6;
+        border-color: rgba(17, 24, 39, 0.5);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    html.light .field {
+        background: #ffffff;
+        border-color: rgba(209, 213, 219, 0.9);
+        color: #0a0a0a;
+    }
+
+    html.light .field::placeholder {
+        color: #9ca3af;
+    }
+
+    html.light .field:focus {
+        border-color: rgba(17, 24, 39, 0.6);
+        box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
+        background: #ffffff;
+    }
+
+    html.light .nav-item {
+        color: #6b7280;
+    }
+
+    html.light .nav-item:hover {
+        background: #f3f4f6;
+        color: #1f2937;
+    }
+
+    html.light .nav-item.active {
+        background: #0a0a0a;
+        border-color: #0a0a0a;
+        color: #ffffff;
+    }
+
+    html.light .section-purple {
+        background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 50%, #f9fafb 100%);
+    }
+
+    /* grid on white — lighter lines */
+    html.light .grid-bg {
+        background-image:
+            linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    }
+
+    html.light .grid-bg-dense {
+        background-image:
+            linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+    }
+
+    html.light .dots-bg {
+        background-image: radial-gradient(circle, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+    }
+
+    html.light .badge {
+        background: rgba(17, 24, 39, 0.06);
+        border-color: rgba(17, 24, 39, 0.18);
+        color: #1f2937;
+    }
+
+    html.light .credit-card {
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+    }
+
+    html.light .text-gradient {
+        background: linear-gradient(135deg, #0a0a0a 0%, #374151 60%, #0a0a0a 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    html.light .text-gradient-hero {
+        background: linear-gradient(120deg, #000000 0%, #1f2937 40%, #374151 70%, #111827 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
 }
 
 /* ─── Utilities ────────────────────────────────────────── */
@@ -470,6 +665,22 @@
         transform: translateY(-5px);
         box-shadow: 0 20px 70px rgba(0, 0, 0, 0.8), 0 0 50px rgba(168, 85, 247, 0.2);
     }
+
+    /* Light-mode gradient text — black & white only */
+    html.light .text-gradient-hero {
+        background: linear-gradient(120deg, #0a0a0a 0%, #1f1a3a 35%, #7c3aed 65%, #6d28d9 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    html.light .text-gradient {
+        background: linear-gradient(135deg, #0a0a0a 0%, #4a3a6a 50%, #7c3aed 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
 }
 
 /* ─── Keyframes ──────────────────────────────────────── */

@@ -27,7 +27,7 @@ const STORAGE_KEY = 'finexa_user';
 // Demo user fallback when backend is unavailable
 const DEMO_USER: UserProfile = {
     id: 0, username: 'arjun_demo', email: 'demo@finexa.ai',
-    first_name: 'Arjun', last_name: 'Sharma', ai_credits: 400,
+    first_name: 'Arjun', last_name: 'Sharma', ai_credits: 100000,
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (access && isBackendAvailable) {
                 try {
                     const u = await AuthAPI.me();
-                    setUser({ ...u, ai_credits: u.ai_credits ?? 400 });
+                    setUser({ ...u, ai_credits: u.ai_credits ?? 100000 });
                     setIsLoading(false);
                     return;
                 } catch { AuthAPI.clearTokens(); }
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const refreshUser = async () => {
         try {
             const u = await AuthAPI.me();
-            setUser({ ...u, ai_credits: u.ai_credits ?? 400 });
+            setUser({ ...u, ai_credits: u.ai_credits ?? 100000 });
         } catch { /* Doesn't matter */ }
     };
 
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (isBackendAvailable) {
                 const data = await AuthAPI.login({ email, password });
                 AuthAPI.saveTokens(data.access, data.refresh);
-                const u = { ...data.user, ai_credits: data.user.ai_credits ?? 400 };
+                const u = { ...data.user, ai_credits: data.user.ai_credits ?? 100000 };
                 setUser(u);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
                 setIsLoading(false);
@@ -124,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (isBackendAvailable) {
                 const data = await AuthAPI.register({ username, email, password, password2: password });
                 AuthAPI.saveTokens(data.tokens.access, data.tokens.refresh);
-                const u = { ...data.user, ai_credits: 400 };
+                const u = { ...data.user, ai_credits: 100000 };
                 setUser(u);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
                 setIsLoading(false);
@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setIsLoading(false);
                 return { success: false, error: 'Email already registered' };
             }
-            const newUser: UserProfile = { id: Date.now(), username, email, first_name: username, ai_credits: 400 };
+            const newUser: UserProfile = { id: Date.now(), username, email, first_name: username, ai_credits: 100000 };
             users.push({ ...newUser, password });
             localStorage.setItem('finexa_local_users', JSON.stringify(users));
             setUser(newUser);
