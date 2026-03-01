@@ -45,8 +45,13 @@ async function apiFetch<T>(
         const refreshed = await tryRefreshToken();
         if (refreshed) return apiFetch<T>(path, options, requiresAuth, false);
         clearTokens();
-        window.location.href = '/login';
-        throw new Error('Session expired');
+        // Don't hard-redirect — let components handle the error gracefully
+        // Only redirect if there's no stored user session at all
+        const storedUser = localStorage.getItem('finexa_user');
+        if (!storedUser) {
+            window.location.href = '/login';
+        }
+        throw new Error('Session expired — please log in again');
     }
 
     if (!res.ok) {
@@ -182,6 +187,7 @@ export const TransactionsAPI = {
         total_income: number;
         total_expense: number;
         savings: number;
+        all_time_savings: number;
         categories: { name: string; amount: number }[];
     }>('/api/transactions/summary/'),
 
@@ -277,6 +283,15 @@ export const OnboardingAPI = {
         apiFetch<any>('/api/users/onboarding/', {
             method: 'POST', body: JSON.stringify(data),
         }),
+};
+
+// ─── Credits API ────────────────────────────────────────────────
+export const CreditsAPI = {
+    purchase: (planId: string) =>
+        apiFetch<{ success: boolean; plan: string; credits_added: number; total_credits: number }>(
+            '/auth/purchase-credits/',
+            { method: 'POST', body: JSON.stringify({ plan_id: planId }) },
+        ),
 };
 
 // Helper: check if backend is available

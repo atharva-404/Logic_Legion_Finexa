@@ -8,6 +8,9 @@ import SignIn from './pages/auth/SignIn';
 import SignUp from './pages/auth/SignUp';
 import Onboarding from './pages/Onboarding';
 import DashboardLayout from './layouts/DashboardLayout';
+import FAQ from './pages/FAQ';
+import HowItWorks from './pages/HowItWorks';
+import Subscription from './pages/Subscription';
 import Overview from './pages/dashboard/Overview';
 import SpendingInsights from './pages/dashboard/SpendingInsights';
 import BudgetOptimizer from './pages/dashboard/BudgetOptimizer';
@@ -20,6 +23,7 @@ import Settings from './pages/dashboard/Settings';
 import Cards from './pages/dashboard/Cards';
 import Documents from './pages/dashboard/Documents';
 import Transactions from './pages/dashboard/Transactions';
+import Wallet from './pages/dashboard/Wallet';
 
 export default function App() {
     return (
@@ -28,6 +32,9 @@ export default function App() {
                 <BrowserRouter>
                     <Routes>
                         <Route path="/" element={<Landing />} />
+                        <Route path="/faq" element={<FAQ />} />
+                        <Route path="/how-it-works" element={<HowItWorks />} />
+                        <Route path="/subscription" element={<Subscription />} />
                         <Route path="/login" element={<SignIn />} />
                         <Route path="/signup" element={<SignUp />} />
                         <Route path="/onboarding" element={
@@ -38,6 +45,7 @@ export default function App() {
                             <ProtectedRoute><DashboardLayout /></ProtectedRoute>
                         }>
                             <Route index element={<Overview />} />
+                            <Route path="wallet" element={<Wallet />} />
                             <Route path="cards" element={<Cards />} />
                             <Route path="transactions" element={<Transactions />} />
                             <Route path="spending" element={<SpendingInsights />} />

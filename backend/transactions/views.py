@@ -33,10 +33,21 @@ class TransactionSummaryView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        from dateutil.relativedelta import relativedelta
         now = timezone.now()
         month_start = now.replace(day=1).date()
 
         qs = Transaction.objects.filter(user=request.user, date__gte=month_start)
+
+        # If no transactions this month, fall back to last month
+        display_month = now
+        if not qs.exists():
+            prev = (now - relativedelta(months=1))
+            prev_start = prev.replace(day=1).date()
+            qs = Transaction.objects.filter(
+                user=request.user, date__gte=prev_start, date__lt=month_start
+            )
+            display_month = prev
 
         totals = qs.aggregate(
             total_income=Sum('amount', filter=Q(type='income')),
@@ -57,12 +68,20 @@ class TransactionSummaryView(APIView):
         # User's saved monthly income from profile
         profile_income = float(request.user.income or 0)
 
+        # Total savings across all time (income - expenses)
+        all_totals = Transaction.objects.filter(user=request.user).aggregate(
+            all_income=Sum('amount', filter=Q(type='income')),
+            all_expense=Sum('amount', filter=Q(type='expense')),
+        )
+        all_time_savings = float(all_totals['all_income'] or 0) - float(all_totals['all_expense'] or 0)
+
         return Response({
-            'month': now.strftime('%B %Y'),
+            'month': display_month.strftime('%B %Y'),
             'profile_income': profile_income,
             'transaction_income': total_income,
             'total_income': max(profile_income, total_income),
             'total_expense': total_expense,
             'savings': max(profile_income, total_income) - total_expense,
+            'all_time_savings': max(0, all_time_savings),
             'categories': categories,
         })

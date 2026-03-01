@@ -246,7 +246,7 @@ function GoalCard({ goal, ai, onDelete, onUpdate }: { goal: Goal; ai?: GoalAI; o
                                 <div>
                                     <label className="text-[10px] text-slate-500 mb-0.5 block">Priority</label>
                                     <select className="input-field text-xs w-full" value={editForm.priority}
-                                        onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))}>
+                                        onChange={e => setEditForm(f => ({ ...f, priority: e.target.value as 'high' | 'medium' | 'low' }))}>
                                         <option value="high">High</option>
                                         <option value="medium">Medium</option>
                                         <option value="low">Low</option>
@@ -328,6 +328,7 @@ function GoalCard({ goal, ai, onDelete, onUpdate }: { goal: Goal; ai?: GoalAI; o
 export default function GoalsTracker() {
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [aiPlan, setAiPlan] = useState<AIAnalysis | null>(null);
     const [aiLoading, setAiLoading] = useState(false);
@@ -343,6 +344,7 @@ export default function GoalsTracker() {
 
     /* Load goals from backend */
     const loadGoals = useCallback(async () => {
+        setError(null);
         try {
             const data = await GoalsAPI.list();
             const raw = data.results || (Array.isArray(data) ? data : []);
@@ -362,7 +364,10 @@ export default function GoalsTracker() {
                 required_monthly: +g.required_monthly || 0,
                 delay_months: g.delay_months || 0,
             })));
-        } catch (err) { console.error('Goals load failed:', err); }
+        } catch (err: any) {
+            console.error('Goals load failed:', err);
+            setError(err?.message || 'Failed to load goals. Please check your connection and try again.');
+        }
         finally { setLoading(false); }
     }, []);
 
@@ -491,15 +496,52 @@ export default function GoalsTracker() {
                 </motion.div>
             )}
 
+            {/* Error State */}
+            {error && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                    className="glass-card p-6 text-center"
+                    style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+                    <AlertTriangle size={32} className="mx-auto mb-3 text-red-400" />
+                    <p className="text-white font-medium mb-1">Failed to load goals</p>
+                    <p className="text-slate-500 text-sm mb-4">{error}</p>
+                    <button onClick={() => { setLoading(true); loadGoals(); }}
+                        className="btn-primary text-sm px-4 py-2 inline-flex items-center gap-1.5">
+                        <RefreshCw size={14} /> Retry
+                    </button>
+                </motion.div>
+            )}
+
+            {/* Empty State */}
+            {!error && goals.length === 0 && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                    className="glass-card p-10 text-center">
+                    <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl"
+                        style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                        🎯
+                    </div>
+                    <h3 className="text-white font-semibold text-lg mb-2">No goals yet</h3>
+                    <p className="text-slate-500 text-sm mb-5 max-w-md mx-auto">
+                        Start by creating your first financial goal. Set targets for emergency funds,
+                        vacations, investments, or anything you're saving for.
+                    </p>
+                    <button onClick={() => setShowModal(true)}
+                        className="btn-primary text-sm px-5 py-2.5 inline-flex items-center gap-2">
+                        <Plus size={16} /> Create Your First Goal
+                    </button>
+                </motion.div>
+            )}
+
             {/* Goals Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                <AnimatePresence>
-                    {goals.map(goal => {
-                        const ai = aiPlan?.goals_analysis?.find(a => a.goal_id === goal.id);
-                        return <GoalCard key={goal.id} goal={goal} ai={ai} onDelete={() => handleDelete(goal.id)} onUpdate={handleUpdate} />;
-                    })}
-                </AnimatePresence>
-            </div>
+            {goals.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    <AnimatePresence>
+                        {goals.map(goal => {
+                            const ai = aiPlan?.goals_analysis?.find(a => a.goal_id === goal.id);
+                            return <GoalCard key={goal.id} goal={goal} ai={ai} onDelete={() => handleDelete(goal.id)} onUpdate={handleUpdate} />;
+                        })}
+                    </AnimatePresence>
+                </div>
+            )}
 
             {/* Tab navigation for AI sections */}
             {(aiPlan || goals.length > 0) && (

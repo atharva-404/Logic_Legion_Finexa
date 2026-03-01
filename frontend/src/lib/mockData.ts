@@ -98,6 +98,31 @@ export const subscriptions = [
     { name: 'Spotify', amount: 119, lastUsed: '1 day ago', status: 'active' },
     { name: 'Amazon Prime', amount: 299, lastUsed: '5 days ago', status: 'active' },
     { name: 'Hotstar', amount: 499, lastUsed: '18 days ago', status: 'warning' },
+];
+
+export interface Transaction {
+    id: string;
+    merchant: string;
+    amount: number;
+    category: string;
+    date: string;
+    status: 'completed' | 'pending';
+}
+
+export const mockTransactions: Transaction[] = [
+    { id: 't1', merchant: 'Zepto Grocery', amount: -642, category: 'Food', date: '2026-02-28', status: 'completed' },
+    { id: 't2', merchant: 'Monthly Salary', amount: 85000, category: 'Salary', date: '2026-02-28', status: 'completed' },
+    { id: 't3', merchant: 'Airtel Postpaid', amount: -999, category: 'Utilities', date: '2026-02-27', status: 'completed' },
+    { id: 't4', merchant: 'Uber India', amount: -342, category: 'Transport', date: '2026-02-26', status: 'completed' },
+    { id: 't5', merchant: 'Netflix India', amount: -649, category: 'Entertainment', date: '2026-02-25', status: 'completed' },
+    { id: 't6', merchant: 'HDFC Home Rent', amount: -18000, category: 'Rent', date: '2026-02-05', status: 'completed' },
+    { id: 't7', merchant: 'Starbucks Coffee', amount: -450, category: 'Food', date: '2026-02-24', status: 'completed' },
+    { id: 't8', merchant: 'Amazon Shopping', amount: -2499, category: 'Shopping', date: '2026-02-22', status: 'completed' },
+    { id: 't9', merchant: 'Zomato Limited', amount: -820, category: 'Food', date: '2026-02-20', status: 'completed' },
+    { id: 't10', merchant: 'Petrol Pump', amount: -2500, category: 'Transport', date: '2026-02-18', status: 'completed' },
+];
+
+export const secondarySubscriptions = [
     { name: 'Gym Membership', amount: 800, lastUsed: '32 days ago', status: 'leak' },
     { name: 'Magazine App', amount: 150, lastUsed: '45 days ago', status: 'leak' },
 ];

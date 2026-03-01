@@ -19,8 +19,7 @@ from .views import (
     MarkAllNotificationsReadAPIView,
     DeleteNotificationAPIView,
     OnboardingAPIView,
-    CardListCreateAPIView,
-    CardDeleteAPIView,
+    PurchaseCreditsAPIView,
 )
 
 urlpatterns = [
@@ -48,8 +47,7 @@ urlpatterns = [
     path('notifications/<int:pk>/delete/', DeleteNotificationAPIView.as_view(), name='notification_delete'),
     path('notifications/mark-all-read/', MarkAllNotificationsReadAPIView.as_view(), name='notification_mark_all'),
     
-    # Card management endpoints
-    path('cards/', CardListCreateAPIView.as_view(), name='card_list_create'),
-    path('cards/<int:pk>/', CardDeleteAPIView.as_view(), name='card_delete'),
+    # Credit purchase
+    path('purchase-credits/', PurchaseCreditsAPIView.as_view(), name='purchase_credits'),
 ]
 

@@ -47,6 +47,7 @@ export default function EmergencyRisk() {
                 if (summary) {
                     setMonthlyIncome(summary.total_income || 0);
                     setMonthlyExpenses(summary.total_expense || 0);
+                    setEmergencySavings(Math.max(0, summary.all_time_savings || summary.savings || 0));
                 }
 
                 // Fetch health score

@@ -9,6 +9,7 @@ export interface UserProfile {
     last_name?: string;
     ai_credits?: number;
     income?: number;
+    financial_health_score?: number;
     onboarding_completed?: boolean;
 }
 
@@ -20,21 +21,23 @@ interface AuthCtx {
     signup: (username: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => void;
     refreshUser: () => Promise<void>;
+    addCredits: (amount: number) => void;
 }
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
+const STORAGE_KEY = 'finexa_user';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isBackendAvailable, setIsBackendAvailable] = useState(true);
+    const [isBackendAvailable, setIsBackendAvailable] = useState(false);
 
     // Check backend availability
     useEffect(() => {
         const check = async () => {
             try {
                 const res = await fetch(`${BASE_URL}/auth/me/`, {
-                    signal: AbortSignal.timeout(3000),
+                    signal: AbortSignal.timeout(2500),
                     headers: { Authorization: `Bearer ${localStorage.getItem('finexa_access') || ''}` },
                 });
                 setIsBackendAvailable(res.status !== 0);
@@ -49,13 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const restore = async () => {
             const { access } = AuthAPI.getTokens();
-            if (access) {
+            if (access && isBackendAvailable) {
                 try {
                     const u = await AuthAPI.me();
                     setUser({
                         ...u,
-                        ai_credits: u.ai_credits ?? u.credits ?? 0,
+                        ai_credits: u.ai_credits ?? u.credits ?? 100000,
                         income: u.income ? +u.income : 0,
+                        financial_health_score: u.financial_health_score ?? 0,
                         onboarding_completed: u.onboarding_completed ?? false,
                     });
                     setIsLoading(false);
@@ -63,6 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 } catch {
                     AuthAPI.clearTokens();
                 }
+            }
+            // Fallback: local user
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try { setUser(JSON.parse(stored)); } catch { localStorage.removeItem(STORAGE_KEY); }
             }
             setIsLoading(false);
         };
@@ -72,53 +81,95 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const refreshUser = async () => {
         try {
             const u = await AuthAPI.me();
-            setUser({
+            const ud = {
                 ...u,
-                ai_credits: u.ai_credits ?? u.credits ?? 0,
+                ai_credits: u.ai_credits ?? u.credits ?? 100000,
                 income: u.income ? +u.income : 0,
+                financial_health_score: u.financial_health_score ?? 0,
                 onboarding_completed: u.onboarding_completed ?? false,
-            });
+            };
+            setUser(ud);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(ud));
         } catch { /* silent */ }
     };
 
     const login = async (email: string, password: string) => {
         setIsLoading(true);
         try {
-            const data = await AuthAPI.login({ email, password });
-            AuthAPI.saveTokens(data.access, data.refresh);
-            const u = { ...data.user, ai_credits: data.user.ai_credits ?? data.user.credits ?? 0 };
-            setUser(u);
-            setIsLoading(false);
-            // Now fetch full profile (login response may not include all fields)
-            try {
+            if (isBackendAvailable) {
+                const data = await AuthAPI.login({ email, password });
+                AuthAPI.saveTokens(data.access, data.refresh);
+                
+                // Fetch full profile
                 const full = await AuthAPI.me();
-                setUser({
+                const u = {
                     ...full,
-                    ai_credits: full.ai_credits ?? full.credits ?? 0,
+                    ai_credits: full.ai_credits ?? full.credits ?? 100000,
                     income: full.income ? +full.income : 0,
+                    financial_health_score: full.financial_health_score ?? 0,
                     onboarding_completed: full.onboarding_completed ?? false,
-                });
-            } catch { /* ignore */ }
+                };
+                setUser(u);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+                setIsLoading(false);
+                return { success: true };
+            }
+
+            // Offline fallback: check local users
+            const usersRaw = localStorage.getItem('finexa_local_users');
+            const users: Array<UserProfile & { password: string }> = usersRaw ? JSON.parse(usersRaw) : [];
+            const found = users.find(u => u.email === email && (u as any).password === password);
+            if (!found) { setIsLoading(false); return { success: false, error: 'Invalid email or password' }; }
+            const { password: _p, ...ud } = found;
+            setUser(ud);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(ud));
+            setIsLoading(false);
             return { success: true };
         } catch (e: any) {
             setIsLoading(false);
-            return { success: false, error: e.message || 'Login failed. Please check your credentials.' };
+            return { success: false, error: e.message || 'Login failed' };
         }
     };
 
     const signup = async (username: string, email: string, password: string) => {
         setIsLoading(true);
         try {
-            await AuthAPI.register({ username, email, password, password_confirm: password });
-            // Auto-login to get JWT tokens
-            const loginData = await AuthAPI.login({ email, password });
-            AuthAPI.saveTokens(loginData.access, loginData.refresh);
-            const u = {
-                ...loginData.user,
-                ai_credits: loginData.user.ai_credits ?? loginData.user.credits ?? 0,
-                onboarding_completed: false,                 // new user always
+            if (isBackendAvailable) {
+                await AuthAPI.register({ username, email, password, password_confirm: password });
+                const loginData = await AuthAPI.login({ email, password });
+                AuthAPI.saveTokens(loginData.access, loginData.refresh);
+                
+                const u = {
+                    ...loginData.user,
+                    ai_credits: 100000,
+                    onboarding_completed: false,
+                };
+                setUser(u);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+                setIsLoading(false);
+                return { success: true };
+            }
+
+            // Offline
+            const usersRaw = localStorage.getItem('finexa_local_users');
+            const users: any[] = usersRaw ? JSON.parse(usersRaw) : [];
+            if (users.find(u => u.email === email)) {
+                setIsLoading(false);
+                return { success: false, error: 'Email already registered' };
+            }
+            const newUser: UserProfile = { 
+                id: Date.now(), 
+                username, 
+                email, 
+                first_name: username, 
+                ai_credits: 100000,
+                financial_health_score: 50,
+                onboarding_completed: false
             };
-            setUser(u);
+            users.push({ ...newUser, password });
+            localStorage.setItem('finexa_local_users', JSON.stringify(users));
+            setUser(newUser);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
             setIsLoading(false);
             return { success: true };
         } catch (e: any) {
@@ -127,13 +178,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const addCredits = (amount: number) => {
+        setUser(prev => {
+            if (!prev) return prev;
+            const updated = { ...prev, ai_credits: (prev.ai_credits ?? 0) + amount };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+            // Also update in local users list if offline
+            const usersRaw = localStorage.getItem('finexa_local_users');
+            if (usersRaw) {
+                const users = JSON.parse(usersRaw);
+                const idx = users.findIndex((u: any) => u.id === prev.id);
+                if (idx !== -1) { users[idx] = { ...users[idx], ai_credits: updated.ai_credits }; }
+                localStorage.setItem('finexa_local_users', JSON.stringify(users));
+            }
+            return updated;
+        });
+    };
+
     const logout = () => {
         AuthAPI.logout();
+        localStorage.removeItem(STORAGE_KEY);
         setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, isBackendAvailable, login, signup, logout, refreshUser }}>
+        <AuthContext.Provider value={{ user, isLoading, isBackendAvailable, login, signup, logout, refreshUser, addCredits }}>
             {children}
         </AuthContext.Provider>
     );

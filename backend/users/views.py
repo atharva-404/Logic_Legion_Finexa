@@ -25,10 +25,8 @@ from .serializers import (
     SendVerificationEmailSerializer,
     NotificationSerializer,
     OnboardingSerializer,
-    CardSerializer,
-    CardCreateSerializer,
 )
-from .models import Notification, Card
+from .models import Notification
 from .auth import generate_jwt_tokens
 
 User = get_user_model()
@@ -693,41 +691,43 @@ class OnboardingAPIView(generics.GenericAPIView):
         }, status=status.HTTP_200_OK)
 
 
-# ── Card Management ──────────────────────────────────────────────
-class CardListCreateAPIView(generics.ListCreateAPIView):
+class PurchaseCreditsAPIView(generics.GenericAPIView):
     """
-    GET  /auth/cards/  → list user's saved cards
-    POST /auth/cards/  → add a new card (only last4 stored)
+    API endpoint for purchasing AI credits.
+    POST /auth/purchase-credits/
+
+    Adds credits to the user's account and persists to DB.
+
+    Request body:
+        { "plan_id": "starter" | "pro" | "elite" }
+
+    Response (200 OK):
+        { "success": true, "plan": "pro", "credits_added": 200000, "total_credits": 299838 }
     """
     permission_classes = [IsAuthenticated]
 
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return CardCreateSerializer
-        return CardSerializer
+    VALID_PLANS = {
+        'starter': {'credits': 50000, 'price': 199},
+        'pro':     {'credits': 200000, 'price': 599},
+        'elite':   {'credits': 500000, 'price': 1299},
+    }
 
-    def get_queryset(self):
-        return Card.objects.filter(user=self.request.user)
+    def post(self, request, *args, **kwargs):
+        plan_id = request.data.get('plan_id')
+        if plan_id not in self.VALID_PLANS:
+            return Response(
+                {'error': f'Invalid plan_id. Choose from: {list(self.VALID_PLANS.keys())}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    def create(self, request, *args, **kwargs):
-        ser = CardCreateSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
-        d = ser.validated_data
-        card = Card.objects.create(
-            user=request.user,
-            last4=d['card_number'].replace(' ', '')[-4:],
-            card_holder=d['card_holder'],
-            expiry=d['expiry'],
-            card_type=d['card_type'],
-            gradient_index=d['gradient_index'],
-        )
-        return Response(CardSerializer(card).data, status=status.HTTP_201_CREATED)
+        plan = self.VALID_PLANS[plan_id]
+        user = request.user
+        user.credits = (user.credits or 0) + plan['credits']
+        user.save(update_fields=['credits'])
 
-
-class CardDeleteAPIView(generics.DestroyAPIView):
-    """DELETE /auth/cards/<id>/ → remove a saved card"""
-    permission_classes = [IsAuthenticated]
-    serializer_class = CardSerializer
-
-    def get_queryset(self):
-        return Card.objects.filter(user=self.request.user)
+        return Response({
+            'success': True,
+            'plan': plan_id,
+            'credits_added': plan['credits'],
+            'total_credits': user.credits,
+        }, status=status.HTTP_200_OK)

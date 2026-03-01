@@ -7,7 +7,11 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const fmt = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 
-const NEEDS_CATS = new Set(['Food', 'Groceries', 'Rent', 'Utilities', 'Bills', 'Transportation', 'Health', 'Household', 'Gas', 'Insurance', 'Education']);
+const NEEDS_CATS = new Set([
+    'Food', 'Food & Dining', 'Groceries', 'Rent', 'Housing',
+    'Utilities', 'Bills', 'Transportation', 'Transport',
+    'Health', 'Household', 'Gas', 'Insurance', 'Education',
+]);
 
 interface CategoryData { name: string; amount: number; icon: string }
 interface AiTip { tip: string; category: string; save_per_month: number }
@@ -46,23 +50,67 @@ export default function BudgetOptimizer() {
     const [simCategory, setSimCategory] = useState('');
     const [reduceAmount, setReduceAmount] = useState(500);
 
+    // Build categories from a raw transaction list
+    const buildFromTransactions = async () => {
+        let allTx: any[] = [];
+        let page = 1;
+        let hasMore = true;
+        while (hasMore) {
+            const d = await TransactionsAPI.list(page);
+            const results = d.results || (Array.isArray(d) ? d : []);
+            allTx = [...allTx, ...results];
+            hasMore = !!d.next;
+            page++;
+        }
+
+        const expenses = allTx.filter((t: any) => t.type === 'expense');
+        const incomes = allTx.filter((t: any) => t.type === 'income');
+        const totalInc = incomes.reduce((s: number, t: any) => s + parseFloat(t.amount), 0)
+            || (user?.income ? +user.income : 0);
+        const totalExp = expenses.reduce((s: number, t: any) => s + parseFloat(t.amount), 0);
+
+        const catMap: Record<string, number> = {};
+        expenses.forEach((t: any) => {
+            const cat = t.category || 'Other';
+            catMap[cat] = (catMap[cat] || 0) + parseFloat(t.amount);
+        });
+
+        const cats: CategoryData[] = Object.entries(catMap)
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, amount]) => ({ name, amount: Math.round(amount), icon: catIcon(name) }));
+
+        setMonthlyIncome(totalInc);
+        setTotalExpense(totalExp);
+        setCategories(cats);
+        if (cats.length > 0) setSimCategory(cats[0].name);
+    };
+
     useEffect(() => {
         setLoading(true);
         TransactionsAPI.summary()
-            .then(summary => {
+            .then(async summary => {
                 const income = summary.total_income || (user?.income ? +user.income : 0);
-                setMonthlyIncome(income);
-                setTotalExpense(summary.total_expense || 0);
-
                 const cats: CategoryData[] = (summary.categories || []).map((c: any) => ({
                     name: c.name,
                     amount: c.amount,
                     icon: catIcon(c.name),
                 }));
-                setCategories(cats);
-                if (cats.length > 0) setSimCategory(cats[0].name);
+
+                if (cats.length > 0) {
+                    // Current-month summary has data — use it
+                    setMonthlyIncome(income);
+                    setTotalExpense(summary.total_expense || 0);
+                    setCategories(cats);
+                    setSimCategory(cats[0].name);
+                } else {
+                    // No current-month expenses — try all transactions
+                    await buildFromTransactions();
+                }
             })
-            .catch(() => {})
+            .catch(async () => {
+                // Summary endpoint failed — try fetching full transaction list
+                try { await buildFromTransactions(); } catch { /* no data available */ }
+            })
             .finally(() => setLoading(false));
     }, []);
 

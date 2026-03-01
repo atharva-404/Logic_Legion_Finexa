@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, ArrowUpRight, Loader2, Activity, BarChart3, Lightbulb, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { getHealthLabel, getStressLevel, calculateEmergencyBuffer, formatCurrency } from '../../lib/calculations';
+import { Link } from 'react-router-dom';
+import { HealthAPI, TransactionsAPI, AIAPI } from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface MonthlyData {
     month: string;
@@ -14,10 +18,6 @@ interface MonthlyData {
 
 // Clamp a number between min and max
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
-import { getHealthLabel, getStressLevel, calculateEmergencyBuffer, formatCurrency } from '../../lib/calculations';
-import { Link } from 'react-router-dom';
-import { HealthAPI, TransactionsAPI, AIAPI } from '../../lib/api';
-import { useAuth } from '../../contexts/AuthContext';
 
 function ScoreGauge({ score, size = 140 }: { score: number; size?: number }) {
     const { color } = getHealthLabel(score);
@@ -60,6 +60,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function Overview() {
     const { user } = useAuth();
+    const aiCredits = user?.ai_credits ?? 0;
     // ─── State for all sections ──────────────────────────────────
     const [loading, setLoading] = useState(true);
     const [healthScore, setHealthScore] = useState(0);
@@ -98,7 +99,7 @@ export default function Overview() {
                 }
 
                 // ── 2. Score History (for chart) ──
-                // We merge backend health scores with mock income/expense data for charts
+                // We merge backend health scores with transaction data for charts
                 const historyData: any = await HealthAPI.getHistory('month').catch(() => null);
                 const parseHistory = (histArr: any[]) => {
                     if (histArr.length === 0) return;
@@ -234,17 +235,25 @@ export default function Overview() {
                         {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} · Your financial snapshot
                     </p>
                 </div>
-                {scoreTrend !== 0 && (
+                <div className="flex items-center gap-3">
                     <motion.div animate={{ scale: [1, 1.02, 1] }} transition={{ duration: 3, repeat: Infinity }}
-                        className="text-xs px-3 py-1.5 rounded-full font-medium"
-                        style={{
-                            background: scoreTrend > 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-                            border: `1px solid ${scoreTrend > 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                            color: scoreTrend > 0 ? '#10b981' : '#ef4444',
-                        }}>
-                        {scoreTrend > 0 ? '↑' : '↓'} Score {scoreTrend > 0 ? 'improved' : 'dropped'} {scoreTrend > 0 ? '+' : ''}{scoreTrend} this month
+                        className="text-[10px] px-3 py-1.5 rounded-full font-bold uppercase tracking-widest flex items-center gap-2"
+                        style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
+                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                        AI Balance: {aiCredits.toLocaleString()}
                     </motion.div>
-                )}
+                    {scoreTrend !== 0 && (
+                        <motion.div animate={{ scale: [1, 1.02, 1] }} transition={{ duration: 3, repeat: Infinity }}
+                            className="text-xs px-3 py-1.5 rounded-full font-medium"
+                            style={{
+                                background: scoreTrend > 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                                border: `1px solid ${scoreTrend > 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                                color: scoreTrend > 0 ? '#10b981' : '#ef4444',
+                            }}>
+                            {scoreTrend > 0 ? '↑' : '↓'} Score {scoreTrend > 0 ? 'improved' : 'dropped'} {scoreTrend > 0 ? '+' : ''}{scoreTrend} this month
+                        </motion.div>
+                    )}
+                </div>
             </div>
 
             {/* Top row: Scores */}
@@ -361,7 +370,7 @@ export default function Overview() {
                     </ResponsiveContainer>
                 </motion.div>
 
-                {/* Income vs Expenses (from real transactions or mock) */}
+                {/* Income vs Expenses (from real transactions) */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
                     className="glass-card p-5">
                     <div className="flex items-center justify-between mb-4">

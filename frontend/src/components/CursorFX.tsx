@@ -97,15 +97,13 @@ export default function CursorFX() {
                     border: '1px solid rgba(168,85,247,0.6)',
                 }}
                 animate={{
-                    width: hovering ? 44 : clicking ? 18 : 28,
-                    height: hovering ? 44 : clicking ? 18 : 28,
-                    borderColor: hovering ? 'rgba(192,132,252,0.9)' : 'rgba(168,85,247,0.6)',
-                    borderWidth: hovering ? 1.5 : 1,
-                    boxShadow: hovering
-                        ? '0 0 20px rgba(168,85,247,0.5), 0 0 6px rgba(168,85,247,0.3)'
-                        : clicking
-                            ? '0 0 8px rgba(168,85,247,0.8)'
-                            : '0 0 8px rgba(168,85,247,0.2)',
+                    width: clicking ? 18 : 28,
+                    height: clicking ? 18 : 28,
+                    borderColor: 'rgba(168,85,247,0.6)',
+                    borderWidth: 1,
+                    boxShadow: clicking
+                        ? '0 0 8px rgba(168,85,247,0.8)'
+                        : '0 0 8px rgba(168,85,247,0.2)',
                 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             />
@@ -122,8 +120,8 @@ export default function CursorFX() {
                     boxShadow: '0 0 8px rgba(168,85,247,0.9)',
                 }}
                 animate={{
-                    width: hovering ? 5 : clicking ? 3 : 6,
-                    height: hovering ? 5 : clicking ? 3 : 6,
+                    width: clicking ? 3 : 6,
+                    height: clicking ? 3 : 6,
                     opacity: clicking ? 0.5 : 1,
                 }}
                 transition={{ type: 'spring', stiffness: 600, damping: 30 }}

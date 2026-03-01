@@ -7,6 +7,7 @@ import {
     ChevronRight, Bot, Wifi, CreditCard, Activity,
     FileText, PieChart
 } from 'lucide-react';
+import Navbar from '../../components/Navbar';
 
 /* ── Animated number counter ───────────────── */
 function Counter({ end, suffix = '' }: { end: number; suffix?: string }) {
@@ -183,68 +184,13 @@ const TESTIMONIALS = [
     { name: 'Ananya S.', role: 'Marketing Manager', text: 'ELI-15 mode explains every financial concept so clearly. Finally understand my money.', r: 5 },
 ];
 
-/* ════════════ MAIN PAGE ════════════ */
+/* ─── MAIN PAGE ─── */
 export default function Landing() {
-    const [scrolled, setScrolled] = useState(false);
-    useEffect(() => {
-        const f = () => setScrolled(window.scrollY > 30);
-        window.addEventListener('scroll', f, { passive: true });
-        return () => window.removeEventListener('scroll', f);
-    }, []);
-
     return (
         <div style={{ background: 'var(--bg)' }}>
 
             {/* ═══ NAVBAR ═══ */}
-            <motion.nav
-                className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-6 md:px-12"
-                animate={{ backdropFilter: scrolled ? 'blur(24px)' : 'blur(12px)' }}
-                style={{
-                    background: scrolled ? 'rgba(5,5,15,0.9)' : 'rgba(5,5,15,0.5)',
-                    borderBottom: scrolled ? '1px solid rgba(168,85,247,0.15)' : '1px solid transparent',
-                    boxShadow: scrolled ? '0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(168,85,247,0.08)' : 'none',
-                    transition: 'all 0.4s ease',
-                }}>
-                {/* Logo LEFT */}
-                <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-                    <div className="relative">
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center glow-sm"
-                            style={{ background: 'linear-gradient(135deg, #6d28d9, #a855f7)' }}>
-                            <TrendingUp size={14} className="text-white" />
-                        </div>
-                        <div className="absolute -inset-0.5 rounded-xl opacity-0 hover:opacity-100 transition-opacity"
-                            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', filter: 'blur(6px)', zIndex: -1 }} />
-                    </div>
-                    <span className="font-display font-bold text-lg" style={{ color: '#fff' }}>finexa</span>
-                </Link>
-
-                {/* Nav RIGHT */}
-                <div className="flex items-center gap-5 md:gap-7 ml-auto">
-                    <div className="hidden md:flex items-center gap-6">
-                        {[['Features', '#features'], ['How It Works', '#how'], ['Reviews', '#reviews']].map(([label, href]) => (
-                            <a key={label} href={href}
-                                className="text-sm font-medium transition-all duration-200"
-                                style={{ color: 'rgba(200,190,255,0.6)' }}
-                                onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(200,190,255,0.6)')}>
-                                {label}
-                            </a>
-                        ))}
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                        <Link to="/login"
-                            className="hidden sm:inline-block text-sm font-medium px-4 py-2 rounded-xl transition-all"
-                            style={{ color: 'rgba(200,190,255,0.7)', border: '1px solid rgba(168,85,247,0.18)', background: 'rgba(168,85,247,0.05)' }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.color = '#fff'; }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.18)'; e.currentTarget.style.color = 'rgba(200,190,255,0.7)'; }}>
-                            Sign In
-                        </Link>
-                        <Link to="/signup" className="btn text-sm px-4 py-2.5">
-                            Get Started <ArrowRight size={14} />
-                        </Link>
-                    </div>
-                </div>
-            </motion.nav>
+            <Navbar />
 
             {/* ═══ HERO ═══ */}
             <section className="relative min-h-screen flex items-center overflow-hidden grid-bg-dense pt-16">

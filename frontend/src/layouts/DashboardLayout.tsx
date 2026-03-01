@@ -1,20 +1,22 @@
-import { useState, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    LayoutDashboard, PieChart, Target, CreditCard, Shield,
+    LayoutDashboard, PieChart, Target, Wallet, Shield, Zap,
     Trophy, MessageCircle, BookOpen, Settings, LogOut,
     Bell, ChevronLeft, ChevronRight, Menu, FileText,
     ListOrdered, TrendingUp, Sparkles, X, Plus,
     AlertCircle, CheckCircle, Info, Clock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { NotificationsAPI } from '../lib/api';
+import { useTheme } from '../contexts/ThemeContext';
+import ThemeToggle from '../components/ThemeToggle';
+import { NotificationsAPI, HealthAPI } from '../lib/api';
 
-// Remove Subscription from navItems
+// Sidebar items - Institutional navigation
 const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Overview', end: true },
-    { to: '/dashboard/cards', icon: CreditCard, label: 'Cards' },
+    { to: '/dashboard/wallet', icon: Wallet, label: 'Wallet' },
     { to: '/dashboard/transactions', icon: ListOrdered, label: 'Transactions' },
     { to: '/dashboard/spending', icon: PieChart, label: 'Spending' },
     { to: '/dashboard/budget', icon: TrendingUp, label: 'Budget' },
@@ -27,17 +29,127 @@ const navItems = [
     { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ];
 
-const CREDIT_PACKS = [
-    { amount: 50000, price: 49, label: '50k', desc: 'Good for ~500 AI chats' },
-    { amount: 200000, price: 149, label: '200k', desc: 'Best value · ~2000 chats', popular: true },
-    { amount: 500000, price: 299, label: '500k', desc: 'Power user pack' },
-];
+function FinexaScorePill() {
+    const { isDark } = useTheme();
+    const [score, setScore] = useState<number | null>(null);
 
-const notifIcon: Record<string, any> = { warning: AlertCircle, success: CheckCircle, info: Info };
-const notifColor: Record<string, string> = { warning: '#f59e0b', success: '#10b981', info: '#60a5fa' };
+    useEffect(() => {
+        let cancelled = false;
+        HealthAPI.getScore()
+            .then(d => { if (!cancelled) setScore(d.score ?? 0); })
+            .catch(() => { if (!cancelled) setScore(0); });
+        return () => { cancelled = true; };
+    }, []);
 
-function NotifPanel({ open, onClose, notifs, onMarkAll, onDismiss }: { open: boolean; onClose: () => void; notifs: any[]; onMarkAll: () => void; onDismiss: (id: number) => void; }) {
-    const unread = notifs.filter(n => !n.is_read).length;
+    const s = score ?? 0;
+    const color = s >= 70 ? { bg: '34,197,94', text: isDark ? '#4ade80' : '#15803d' }
+                 : s >= 40 ? { bg: '245,158,11', text: isDark ? '#fbbf24' : '#d97706' }
+                 :           { bg: '239,68,68', text: isDark ? '#f87171' : '#dc2626' };
+
+    return (
+        <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+            style={{
+                background: isDark ? `rgba(${color.bg},0.1)` : `rgba(${color.bg},0.05)`,
+                border: isDark ? `1px solid rgba(${color.bg},0.3)` : `1px solid rgba(${color.bg},0.2)`,
+                color: color.text,
+                boxShadow: isDark ? `0 2px 12px rgba(${color.bg},0.15)` : `0 2px 8px rgba(${color.bg},0.05)`,
+            }}>
+            <div className="w-1.5 h-1.5 rounded-full" style={{ background: color.text, boxShadow: `0 0 6px ${isDark ? `rgba(${color.bg},0.9)` : `rgba(${color.bg},0.4)`}` }} />
+            <span className="opacity-80">Fin Score</span>
+            <span className="font-bold">{score !== null ? s : '…'}</span>
+        </div>
+    );
+}
+
+const notifIcon = { warning: AlertCircle, success: CheckCircle, info: Info };
+const notifColor = { warning: '#f59e0b', success: '#10b981', info: '#60a5fa' };
+
+// Map backend notification_type to icon type
+function mapNotifType(t: string): 'warning' | 'success' | 'info' {
+    if (t === 'warning') return 'warning';
+    if (t === 'success' || t === 'goal') return 'success';
+    return 'info';
+}
+
+// Format relative time from ISO date
+function timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    return `${Math.floor(days / 7)}w ago`;
+}
+
+interface NotifItem {
+    id: number;
+    type: 'warning' | 'success' | 'info';
+    title: string;
+    body: string;
+    time: string;
+    read: boolean;
+}
+
+function NotifPanel({ open, onClose, onCountChange }: { open: boolean; onClose: () => void; onCountChange?: (count: number) => void }) {
+    const [notifs, setNotifs] = useState<NotifItem[]>([]);
+    const [loading, setLoading] = useState(false);
+    const unread = notifs.filter(n => !n.read).length;
+
+    // Fetch notifications from backend
+    const fetchNotifs = useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = await NotificationsAPI.list();
+            const arr = (Array.isArray(data) ? data : (data as any)?.results ?? []);
+            const mapped: NotifItem[] = arr.map((n: any) => ({
+                id: n.id,
+                type: mapNotifType(n.notification_type),
+                title: n.title,
+                body: n.message,
+                time: timeAgo(n.created_at),
+                read: n.is_read,
+            }));
+            setNotifs(mapped);
+            onCountChange?.(mapped.filter(n => !n.read).length);
+        } catch (err) {
+            console.error('Failed to fetch notifications:', err);
+        } finally {
+            setLoading(false);
+        }
+    }, [onCountChange]);
+
+    useEffect(() => {
+        if (open) fetchNotifs();
+    }, [open, fetchNotifs]);
+
+    // Also fetch on mount for badge count
+    useEffect(() => { fetchNotifs(); }, []);
+
+    async function markAll() {
+        try {
+            await NotificationsAPI.markAllRead();
+            setNotifs(n => n.map(x => ({ ...x, read: true })));
+            onCountChange?.(0);
+        } catch (err) {
+            console.error('Failed to mark all read:', err);
+        }
+    }
+
+    async function dismiss(id: number) {
+        try {
+            await NotificationsAPI.deleteNotif(id);
+            setNotifs(prev => {
+                const next = prev.filter(x => x.id !== id);
+                onCountChange?.(next.filter(n => !n.read).length);
+                return next;
+            });
+        } catch (err) {
+            console.error('Failed to dismiss notification:', err);
+        }
+    }
 
     return (
         <AnimatePresence>
@@ -50,7 +162,6 @@ function NotifPanel({ open, onClose, notifs, onMarkAll, onDismiss }: { open: boo
                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                         className="fixed right-4 top-16 z-50 w-80 card overflow-hidden"
                         style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-                        {/* Header */}
                         <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid var(--border)' }}>
                             <div className="flex items-center gap-2">
                                 <Bell size={16} style={{ color: 'var(--purple)' }} />
@@ -59,30 +170,25 @@ function NotifPanel({ open, onClose, notifs, onMarkAll, onDismiss }: { open: boo
                             </div>
                             <div className="flex items-center gap-1">
                                 {unread > 0 && (
-                                    <button onClick={onMarkAll} className="text-xs text-3 hover:text-1 transition-colors px-2">Mark all read</button>
+                                    <button onClick={markAll} className="text-xs text-3 hover:text-1 transition-colors px-2">Mark all read</button>
                                 )}
                                 <button onClick={onClose} className="btn-ghost p-1.5"><X size={14} /></button>
                             </div>
                         </div>
-                        {/* List */}
                         <div className="overflow-y-auto flex-1">
-                            {notifs.length === 0 ? (
+                            {loading ? (
+                                <div className="py-12 text-center text-3 text-sm">Loading notifications...</div>
+                            ) : notifs.length === 0 ? (
                                 <div className="py-12 text-center text-3 text-sm">All caught up!</div>
                             ) : (
                                 notifs.map(n => {
-                                    // Derive type from title/message if possible, or default to info
-                                    let type = 'info';
-                                    const lower = (n.title + ' ' + n.message).toLowerCase();
-                                    if (lower.includes('warning') || lower.includes('over budget') || lower.includes('alert')) type = 'warning';
-                                    if (lower.includes('success') || lower.includes('reached') || lower.includes('streak')) type = 'success';
-
-                                    const Icon = notifIcon[type] ?? Info;
-                                    const color = notifColor[type] ?? '#60a5fa';
+                                    const Icon = (notifIcon as any)[n.type] ?? Info;
+                                    const color = (notifColor as any)[n.type] ?? '#60a5fa';
                                     return (
                                         <motion.div key={n.id} layout exit={{ opacity: 0, height: 0 }}
                                             className="flex gap-3 p-4 transition-all"
                                             style={{
-                                                background: n.is_read ? 'transparent' : 'rgba(168,85,247,0.04)',
+                                                background: n.read ? 'transparent' : 'rgba(168,85,247,0.04)',
                                                 borderBottom: '1px solid var(--border)',
                                             }}>
                                             <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -92,12 +198,12 @@ function NotifPanel({ open, onClose, notifs, onMarkAll, onDismiss }: { open: boo
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between gap-2">
                                                     <p className="text-xs font-semibold text-1">{n.title}</p>
-                                                    {!n.is_read && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: 'var(--purple)' }} />}
+                                                    {!n.read && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: 'var(--purple)' }} />}
                                                 </div>
-                                                <p className="text-xs text-3 mt-0.5 leading-relaxed">{n.message}</p>
+                                                <p className="text-xs text-3 mt-0.5 leading-relaxed">{n.body}</p>
                                                 <div className="flex items-center justify-between mt-2">
-                                                    <span className="text-[10px] text-3 flex items-center gap-1"><Clock size={9} />{new Date(n.created_at).toLocaleDateString()}</span>
-                                                    {!n.is_read && <button onClick={() => onDismiss(n.id)} className="text-[10px] text-3 hover:text-purple-400 transition-colors">Mark read</button>}
+                                                    <span className="text-[10px] text-3 flex items-center gap-1"><Clock size={9} />{n.time}</span>
+                                                    <button onClick={() => dismiss(n.id)} className="text-[10px] text-3 hover:text-red-400 transition-colors">Dismiss</button>
                                                 </div>
                                             </div>
                                         </motion.div>
@@ -112,122 +218,47 @@ function NotifPanel({ open, onClose, notifs, onMarkAll, onDismiss }: { open: boo
     );
 }
 
-function CreditsBuyModal({ isOpen, onClose, onBuy }: { isOpen: boolean; onClose: () => void; onBuy: (amount: number) => void }) {
-    return (
-        <AnimatePresence>
-            {isOpen && (
-                <>
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        onClick={onClose} className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
-                    <motion.div initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 40, scale: 0.96 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <div className="card w-full max-w-xs p-6">
-                            <div className="flex items-center justify-between mb-5">
-                                <div>
-                                    <h3 className="font-display font-bold text-1">Top Up Credits</h3>
-                                    <p className="text-xs text-3 mt-0.5">100 credits per AI message</p>
-                                </div>
-                                <button onClick={onClose} className="btn-ghost p-1.5"><X size={15} /></button>
-                            </div>
-                            <div className="space-y-2.5 mb-4">
-                                {CREDIT_PACKS.map(p => (
-                                    <button key={p.amount} onClick={() => { onBuy(p.amount); onClose(); }}
-                                        className="w-full flex items-center justify-between p-3.5 rounded-xl border transition-all relative overflow-hidden"
-                                        style={p.popular
-                                            ? { borderColor: 'rgba(168,85,247,0.5)', background: 'rgba(168,85,247,0.08)' }
-                                            : { borderColor: 'var(--border)', background: 'var(--surface-2)' }}>
-                                        {p.popular && (
-                                            <span className="absolute top-0 right-0 text-[9px] font-bold px-2 py-0.5 rounded-bl-lg"
-                                                style={{ background: 'var(--purple)', color: '#fff' }}>POPULAR</span>
-                                        )}
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.12)' }}>
-                                                <Sparkles size={14} style={{ color: 'var(--purple)' }} />
-                                            </div>
-                                            <div className="text-left">
-                                                <p className="font-bold text-sm text-1">{p.label} Credits</p>
-                                                <p className="text-[10px] text-3">{p.desc}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-bold text-1">Rs {p.price}</p>
-                                            <p className="text-[10px] text-3">one-time</p>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                            <p className="text-[10px] text-center text-3">Credits never expire. Instant activation.</p>
-                        </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
-    );
-}
+
 
 export default function DashboardLayout() {
     const { user, logout } = useAuth();
+    const { isDark } = useTheme();
     const aiCredits = user?.ai_credits ?? 0;
     const navigate = useNavigate();
 
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
-    const [buyCreditsOpen, setBuyCreditsOpen] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
     const [toast, setToast] = useState('');
-    const [notifs, setNotifs] = useState<any[]>([]);
+    const [unreadNotifs, setUnreadNotifs] = useState(0);
 
-    // Fetch notifications
-    const fetchNotifs = () => {
-        if (!user) return;
-        NotificationsAPI.list().then(data => {
-            if (Array.isArray(data)) setNotifs(data);
-            else if (data && Array.isArray((data as any).results)) setNotifs((data as any).results);
-        }).catch(() => { });
-    };
-
-    useEffect(() => {
-        fetchNotifs();
-        // Refresh notifications every 30 seconds
-        const interval = setInterval(fetchNotifs, 30000);
-        return () => clearInterval(interval);
-    }, [user]);
-
-    const unreadNotifs = notifs.filter(n => !n.is_read).length;
-
-    async function handleMarkRead(id: number) {
-        try {
-            await NotificationsAPI.markRead(id);
-            setNotifs(ns => ns.map(n => n.id === id ? { ...n, is_read: true } : n));
-        } catch { /* ignore offline */ }
-    }
-
-    async function handleMarkAll() {
-        try {
-            await NotificationsAPI.markAllRead();
-            setNotifs(ns => ns.map(n => ({ ...n, is_read: true })));
-        } catch { /* ignore */ }
-    }
-
-    function handleBuy(amount: number) {
-        // TODO: Implement real payment flow via backend
-        setToast(`Credit purchase coming soon!`);
-        setTimeout(() => setToast(''), 2800);
-    }
-
-    const credPct = Math.min(100, (aiCredits / 1000) * 100);
+    const credPct = Math.min(100, (aiCredits / 100000) * 100);
     const initials = (user?.first_name || user?.username || 'U').charAt(0).toUpperCase();
 
     const SidebarContent = () => (
         <div className="flex flex-col h-full overflow-hidden">
             {/* Logo */}
-            <div className="flex items-center gap-3 px-4 py-5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
-                <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center glow-sm"
-                    style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
-                    <TrendingUp size={15} className="text-white" />
+            <Link to="/" className="flex items-center gap-3 px-4 py-5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+                <div className="relative flex-shrink-0">
+                    <div className="absolute -inset-1.5 rounded-full opacity-55"
+                        style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.5), transparent 70%)', filter: 'blur(5px)', animation: 'glowPulse 3s ease-in-out infinite' }} />
+                    <img src="/logo.png" alt="Finexa" className="relative w-8 h-8 object-contain drop-shadow-[0_0_9px_rgba(168,85,247,0.9)]" />
                 </div>
-                {!collapsed && <span className="font-display font-bold text-lg text-gradient">Finexa</span>}
-            </div>
+                {!collapsed && (
+                    <span className="font-display font-extrabold text-xl"
+                        style={{
+                            background: isDark
+                                ? 'linear-gradient(120deg, #ffffff 0%, #e8d5ff 50%, #c084fc 100%)'
+                                : 'linear-gradient(120deg, #0a0a0a 0%, #4a3a6a 50%, #7c3aed 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                            letterSpacing: '-0.01em'
+                        }}>
+                        Finexa
+                    </span>
+                )}
+            </Link>
 
             {/* AI Credits */}
             {!collapsed && (
@@ -237,7 +268,7 @@ export default function DashboardLayout() {
                             <Sparkles size={11} style={{ color: 'var(--purple)' }} />
                             <span className="text-xs font-semibold text-2">AI Credits</span>
                         </div>
-                        <button onClick={() => setBuyCreditsOpen(true)}
+                        <button onClick={() => navigate('/subscription')}
                             className="flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-lg transition-all"
                             style={{ background: 'rgba(168,85,247,0.2)', color: 'var(--purple-light)' }}>
                             <Plus size={9} /> Buy
@@ -247,12 +278,11 @@ export default function DashboardLayout() {
                         <span className="text-sm font-bold text-1">{aiCredits.toLocaleString()}</span>
                         <span className="text-[10px] text-3">{credPct.toFixed(0)}%</span>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(168,85,247,0.12)' }}>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? 'rgba(168,85,247,0.12)' : 'rgba(124,58,237,0.08)' }}>
                         <motion.div className="h-full rounded-full"
                             initial={{ width: 0 }} animate={{ width: `${credPct}%` }} transition={{ duration: 0.8 }}
                             style={{ background: credPct > 20 ? 'linear-gradient(90deg, #7c3aed, #a855f7)' : 'linear-gradient(90deg, #ef4444, #f97316)' }} />
                     </div>
-                    {aiCredits < 10 && <p className="text-[10px] text-red-400 mt-1.5 font-medium">Low — top up now</p>}
                 </div>
             )}
 
@@ -283,8 +313,8 @@ export default function DashboardLayout() {
                     </div>
                 )}
                 <button onClick={() => { logout(); navigate('/'); }}
-                    className={`nav-item w-full hover:!text-red-400 hover:!bg-red-500/8 ${collapsed ? 'justify-center px-0' : ''}`}
-                    style={{ color: 'rgba(239,68,68,0.55)' }}>
+                    className={`nav-item w-full hover:!text-red-500 hover:!bg-red-500/8 ${collapsed ? 'justify-center px-0' : ''}`}
+                    style={{ color: isDark ? 'rgba(239,68,68,0.55)' : 'rgba(220,38,38,0.65)' }}>
                     <LogOut size={15} className="flex-shrink-0" />
                     {!collapsed && <span>Sign Out</span>}
                 </button>
@@ -296,7 +326,7 @@ export default function DashboardLayout() {
         <div className="min-h-screen flex" style={{ background: 'var(--bg)' }}>
             {/* Desktop Sidebar */}
             <motion.aside animate={{ width: collapsed ? 60 : 228 }} transition={{ duration: 0.22, ease: 'easeInOut' }}
-                className="hidden md:flex flex-col flex-shrink-0 relative z-10"
+                className="hidden md:flex flex-col flex-shrink-0 sticky top-0 h-screen z-10"
                 style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
                 <SidebarContent />
                 <button onClick={() => setCollapsed(!collapsed)}
@@ -326,16 +356,32 @@ export default function DashboardLayout() {
 
             {/* Main */}
             <div className="flex-1 flex flex-col min-w-0">
-                {/* Top bar */}
-                <header className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-                    style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+                {/* Top bar � glassmorphism */}
+                <header className="flex items-center justify-between px-5 py-3 flex-shrink-0 sticky top-0 z-30"
+                    style={{
+                        background: 'var(--surface)',
+                        backdropFilter: 'blur(24px)',
+                        WebkitBackdropFilter: 'blur(24px)',
+                        borderBottom: '1px solid var(--border)',
+                        boxShadow: isDark
+                            ? '0 1px 0 rgba(168,85,247,0.12), 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
+                            : '0 1px 0 rgba(124,58,237,0.08), 0 4px 20px rgba(124,58,237,0.04)',
+                    }}>
+
+                    <div className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
+                        style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(124,58,237,0.6) 25%, rgba(168,85,247,0.8) 50%, rgba(124,58,237,0.6) 75%, transparent 100%)' }} />
+
                     <div className="flex items-center gap-3">
                         <button className="md:hidden btn-ghost p-2" onClick={() => setMobileOpen(true)}>
                             <Menu size={20} />
                         </button>
                         <div className="hidden sm:block">
                             <p className="text-sm font-semibold text-1">
-                                Hello, {user?.first_name || user?.username?.split('_')[0] || 'there'}
+                                {(() => {
+                                    const h = new Date().getHours();
+                                    const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+                                    return `${greeting}, ${user?.first_name || user?.username?.split('_')[0] || 'there'} ??`;
+                                })()}
                             </p>
                             <p className="text-[11px] text-3">Your financial dashboard</p>
                         </div>
@@ -344,21 +390,31 @@ export default function DashboardLayout() {
                     {/* Right-aligned controls */}
                     <div className="flex items-center gap-2">
                         {/* Credits pill */}
-                        <button onClick={() => setBuyCreditsOpen(true)}
-                            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                            style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: 'var(--purple-light)' }}>
+                        <button onClick={() => navigate('/subscription')}
+                            className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+                            style={{
+                                background: isDark ? 'rgba(124,58,237,0.1)' : 'rgba(124,58,237,0.05)',
+                                border: '1px solid var(--border-hi)',
+                                color: 'var(--purple)',
+                                boxShadow: isDark ? '0 2px 12px rgba(124,58,237,0.15)' : '0 2px 8px rgba(124,58,237,0.05)',
+                            }}>
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--purple)', boxShadow: `0 0 6px ${isDark ? 'rgba(168,85,247,0.9)' : 'rgba(124,58,237,0.4)'}` }} />
                             <Sparkles size={11} />
                             {aiCredits >= 1000 ? `${(aiCredits / 1000).toFixed(0)}k` : aiCredits} credits
                         </button>
 
+                        {/* Finexa Score */}
+                        <FinexaScorePill />
 
+                        {/* Theme toggle */}
+                        <ThemeToggle size="sm" />
 
                         {/* Bell */}
                         <button onClick={() => setNotifOpen(!notifOpen)}
-                            className="w-9 h-9 rounded-xl flex items-center justify-center relative transition-all"
+                            className="w-9 h-9 rounded-xl flex items-center justify-center relative transition-all duration-200"
                             style={{
-                                background: notifOpen ? 'rgba(168,85,247,0.15)' : 'var(--surface-2)',
-                                border: `1px solid ${notifOpen ? 'rgba(168,85,247,0.4)' : 'var(--border)'}`,
+                                background: notifOpen ? 'rgba(168,85,247,0.18)' : 'rgba(168,85,247,0.04)',
+                                border: `1px solid ${notifOpen ? 'var(--purple)' : 'var(--border)'}`,
                             }}>
                             <Bell size={15} style={{ color: notifOpen ? 'var(--purple)' : 'var(--text-3)' }} />
                             {unreadNotifs > 0 && (
@@ -370,8 +426,13 @@ export default function DashboardLayout() {
 
                         {/* Avatar */}
                         <button onClick={() => navigate('/dashboard/settings')}
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white glow-sm"
-                            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
+                            className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white transition-all duration-200"
+                            style={{
+                                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                                boxShadow: '0 0 18px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.3)',
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 28px rgba(168,85,247,0.7), 0 2px 8px rgba(0,0,0,0.3)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 18px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.3)'; }}>
                             {initials}
                         </button>
                     </div>
@@ -382,13 +443,8 @@ export default function DashboardLayout() {
                 </main>
             </div>
 
-            {/* Notification Panel */}
-            <NotifPanel open={notifOpen} onClose={() => setNotifOpen(false)} notifs={notifs} onMarkAll={handleMarkAll} onDismiss={handleMarkRead} />
+            <NotifPanel open={notifOpen} onClose={() => setNotifOpen(false)} onCountChange={setUnreadNotifs} />
 
-            {/* Buy Credits Modal */}
-            <CreditsBuyModal isOpen={buyCreditsOpen} onClose={() => setBuyCreditsOpen(false)} onBuy={handleBuy} />
-
-            {/* Toast */}
             <AnimatePresence>
                 {toast && (
                     <motion.div initial={{ opacity: 0, y: 20, x: '-50%' }} animate={{ opacity: 1, y: 0, x: '-50%' }} exit={{ opacity: 0, y: 20, x: '-50%' }}
