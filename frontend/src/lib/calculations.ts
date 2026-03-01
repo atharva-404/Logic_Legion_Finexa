@@ -45,9 +45,10 @@ export function getStressLevel(score: number): { label: string; color: string; b
 }
 
 export function getHealthLabel(score: number): { label: string; color: string; ring: string } {
-    if (score >= 70) return { label: 'Safe', color: '#10b981', ring: '#10b981' };
-    if (score >= 45) return { label: 'Moderate', color: '#f59e0b', ring: '#f59e0b' };
-    return { label: 'At Risk', color: '#ef4444', ring: '#ef4444' };
+    if (score >= 76) return { label: 'Excellent', color: '#22c55e', ring: '#22c55e' };
+    if (score >= 56) return { label: 'Good', color: '#eab308', ring: '#eab308' };
+    if (score >= 36) return { label: 'Fair', color: '#f97316', ring: '#f97316' };
+    return { label: 'Poor', color: '#ef4444', ring: '#ef4444' };
 }
 
 export function calculateEmergencyBuffer(monthlyExpenses: number, currentSavings: number) {

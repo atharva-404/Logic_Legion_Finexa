@@ -55,6 +55,10 @@ class ChatMessageSerializer(serializers.ModelSerializer):
 from .models import Loan
 
 class LoanSerializer(serializers.ModelSerializer):
+    # Explicitly declare Decimal fields (model uses EncryptedDecimalField)
+    principal_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    monthly_emi = serializers.DecimalField(max_digits=10, decimal_places=2)
+
     class Meta:
         model = Loan
         fields = [

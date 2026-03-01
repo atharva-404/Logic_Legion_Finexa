@@ -1,8 +1,8 @@
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db.models import Sum, Q
 from django.utils import timezone
+from decimal import Decimal
 from .models import Transaction
 from .serializers import TransactionSerializer
 
@@ -49,31 +49,40 @@ class TransactionSummaryView(APIView):
             )
             display_month = prev
 
-        totals = qs.aggregate(
-            total_income=Sum('amount', filter=Q(type='income')),
-            total_expense=Sum('amount', filter=Q(type='expense')),
-        )
-        total_income = float(totals['total_income'] or 0)
-        total_expense = float(totals['total_expense'] or 0)
+        # Python-level aggregation (encrypted fields can't use SQL SUM)
+        total_income = Decimal('0')
+        total_expense = Decimal('0')
+        cat_totals = {}
+        for t in qs:
+            amt = Decimal(str(t.amount or 0))
+            if t.type == 'income':
+                total_income += amt
+            elif t.type == 'expense':
+                total_expense += amt
+                cat_totals[t.category] = cat_totals.get(t.category, Decimal('0')) + amt
+
+        total_income = float(total_income)
+        total_expense = float(total_expense)
 
         # Per-category expense breakdown
-        cat_qs = (
-            qs.filter(type='expense')
-              .values('category')
-              .annotate(total=Sum('amount'))
-              .order_by('-total')
-        )
-        categories = [{"name": c['category'], "amount": float(c['total'])} for c in cat_qs]
+        categories = [
+            {"name": cat, "amount": float(amt)}
+            for cat, amt in sorted(cat_totals.items(), key=lambda x: -x[1])
+        ]
 
         # User's saved monthly income from profile
         profile_income = float(request.user.income or 0)
 
         # Total savings across all time (income - expenses)
-        all_totals = Transaction.objects.filter(user=request.user).aggregate(
-            all_income=Sum('amount', filter=Q(type='income')),
-            all_expense=Sum('amount', filter=Q(type='expense')),
-        )
-        all_time_savings = float(all_totals['all_income'] or 0) - float(all_totals['all_expense'] or 0)
+        all_income = Decimal('0')
+        all_expense = Decimal('0')
+        for t in Transaction.objects.filter(user=request.user):
+            amt = Decimal(str(t.amount or 0))
+            if t.type == 'income':
+                all_income += amt
+            elif t.type == 'expense':
+                all_expense += amt
+        all_time_savings = float(all_income) - float(all_expense)
 
         return Response({
             'month': display_month.strftime('%B %Y'),

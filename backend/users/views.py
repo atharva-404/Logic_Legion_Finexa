@@ -799,15 +799,14 @@ class UserProfileFullView(generics.RetrieveAPIView):
 
         # Attach financial summary
         from transactions.models import Transaction
-        from django.db.models import Sum
         from django.utils import timezone
         from decimal import Decimal
 
         now = timezone.now()
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         month_txns = Transaction.objects.filter(user=user, date__gte=month_start)
-        income = float(month_txns.filter(type='income').aggregate(t=Sum('amount'))['t'] or Decimal('0'))
-        expenses = float(month_txns.filter(type='expense').aggregate(t=Sum('amount'))['t'] or Decimal('0'))
+        income = sum(float(t.amount or 0) for t in month_txns.filter(type='income'))
+        expenses = sum(float(t.amount or 0) for t in month_txns.filter(type='expense'))
         profile_income = float(user.income or 0)
         total_income = max(income, profile_income)
 

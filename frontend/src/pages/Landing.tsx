@@ -181,16 +181,37 @@ function FinexaScorePill() {
     const { user } = useAuth();
     const { isDark } = useTheme();
     const score = user?.financial_health_score ?? 0;
+    const credits = user?.ai_credits;
     return (
-        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all duration-300"
-            style={{
-                background: isDark ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.04)',
-                border: isDark ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(34,197,94,0.2)',
-                color: isDark ? '#4ade80' : '#15803d'
-            }}>
-            <div className="w-1 h-1 rounded-full bg-green-500" style={{ boxShadow: isDark ? '0 0 6px #22c55e' : 'none' }} />
-            <span className="opacity-80">Fin Score</span>
-            <span className="font-bold">{score}</span>
+        <div className="hidden lg:flex items-center gap-3 text-[11px] font-medium">
+            {/* Fin Score */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all duration-300"
+                style={{
+                    background: isDark ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.04)',
+                    border: isDark ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(34,197,94,0.2)',
+                    color: isDark ? '#4ade80' : '#15803d'
+                }}>
+                <div className="w-1 h-1 rounded-full bg-green-500" style={{ boxShadow: isDark ? '0 0 6px #22c55e' : 'none' }} />
+                <span className="opacity-80">Fin Score</span>
+                <span className="font-bold">{score}</span>
+            </div>
+            {/* AI Credits */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all duration-300"
+                style={{
+                    background: isDark ? 'rgba(245,158,11,0.08)' : 'rgba(245,158,11,0.04)',
+                    border: isDark ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(245,158,11,0.2)',
+                    color: isDark ? 'rgba(245,158,11,0.85)' : '#b45309'
+                }}>
+                <Zap size={9} style={{ color: '#f59e0b' }} />
+                <span className="opacity-80">AI</span>
+                <span className="font-bold">
+                    {credits != null
+                        ? credits >= 1000
+                            ? `${(credits / 1000).toFixed(0)}k`
+                            : credits
+                        : '100k'}
+                </span>
+            </div>
         </div>
     );
 }
@@ -386,22 +407,6 @@ export default function Landing() {
                                     onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = isDark ? 'rgba(220,210,255,0.75)' : 'rgba(31,41,55,0.7)'; el.style.background = 'transparent'; }}>{label}</Link>
                         ))}
                     </div>
-                    {user && (
-                        <div className="hidden lg:flex items-center gap-2">
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium"
-                                style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: 'rgba(245,158,11,0.85)' }}>
-                                <Zap size={9} style={{ color: '#f59e0b' }} />
-                                {user.ai_credits != null
-                                    ? user.ai_credits >= 1000
-                                        ? `${(user.ai_credits / 1000).toFixed(0)}k credits`
-                                        : `${user.ai_credits} credits`
-                                    : '100k credits'}
-                            </div>
-                            {/* Finexa Score */}
-                            <FinexaScorePill />
-                        </div>
-                    )}
-
                     {/* Theme toggle + Action buttons */}
                     <div className="flex items-center gap-2">
                         <ThemeToggle />

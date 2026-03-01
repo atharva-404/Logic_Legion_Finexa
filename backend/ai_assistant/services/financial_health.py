@@ -6,7 +6,7 @@ Uses the Transaction model (income/expense) and User.income (profile) as primary
 """
 from decimal import Decimal
 from datetime import datetime, timedelta, date as date_type
-from django.db.models import Sum, Avg, Count, StdDev
+from django.db.models import Count
 from django.utils import timezone
 from ..models import WalletTransaction, Wallet, FinancialHealthScore, ScoreFactorDetail, Loan
 from transactions.models import Transaction
@@ -57,71 +57,78 @@ class FinancialHealthCalculator:
 
     def _total_income(self, start, end):
         """Best-effort income: max of transaction-based income and profile income."""
-        tx_income = self._get_transactions(start, end, 'income').aggregate(
-            total=Sum('amount'))['total'] or Decimal('0')
-        return max(float(tx_income), self._get_profile_income())
+        tx_income = sum(float(t.amount or 0) for t in self._get_transactions(start, end, 'income'))
+        return max(tx_income, self._get_profile_income())
 
     def _total_expenses(self, start, end):
-        return float(
-            self._get_transactions(start, end, 'expense').aggregate(
-                total=Sum('amount'))['total'] or Decimal('0'))
+        return sum(float(t.amount or 0) for t in self._get_transactions(start, end, 'expense'))
 
     # ── 1. Spending Discipline (0-20) ─────────────────────────────
     def calculate_spending_discipline(self, month_date):
         """
         Sub-scores:
-          - Budget adherence (0-8): expense / income ratio
-          - Spending consistency (0-6): low std-dev across expense txns
-          - Category diversity (0-6): spending spread across categories
+          - Budget adherence (0-14): expense / income ratio — PRIMARY driver
+          - Spending consistency (0-3): low std-dev across expense txns
+          - Category diversity (0-3): spending spread across categories
         """
         try:
             start, end = self._month_range(month_date)
             income = self._total_income(start, end)
             expenses = self._total_expenses(start, end)
-            expense_txns = self._get_transactions(start, end, 'expense')
-            tx_count = expense_txns.count()
+            expense_txns = list(self._get_transactions(start, end, 'expense'))
+            tx_count = len(expense_txns)
 
-            # --- budget adherence (0-8) ---
+            # --- budget adherence (0-14) — expense/income ratio is king ---
             if income > 0:
                 spend_ratio = expenses / income
-                if spend_ratio <= 0.50:
-                    budget_score = 8
+                if spend_ratio <= 0.40:
+                    budget_score = 14
+                elif spend_ratio <= 0.50:
+                    budget_score = 12
+                elif spend_ratio <= 0.60:
+                    budget_score = 10
                 elif spend_ratio <= 0.70:
-                    budget_score = 7
-                elif spend_ratio <= 0.85:
+                    budget_score = 8
+                elif spend_ratio <= 0.80:
                     budget_score = 5
-                elif spend_ratio <= 1.0:
+                elif spend_ratio <= 0.90:
                     budget_score = 3
-                else:
+                elif spend_ratio <= 1.0:
                     budget_score = 1
+                else:
+                    budget_score = 0  # spending more than income
             else:
                 budget_score = 4  # neutral – no income data
 
-            # --- spending consistency (0-6) ---
+            # --- spending consistency (0-3) ---
             if tx_count >= 3:
-                stddev = expense_txns.aggregate(sd=StdDev('amount'))['sd'] or 0
-                avg_amt = float(expense_txns.aggregate(a=Avg('amount'))['a'] or 1)
-                cv = float(stddev) / avg_amt if avg_amt > 0 else 1
+                amounts = [float(t.amount or 0) for t in expense_txns]
+                avg_amt = sum(amounts) / len(amounts) if amounts else 1
+                variance = sum((a - avg_amt) ** 2 for a in amounts) / len(amounts)
+                stddev = variance ** 0.5
+                cv = stddev / avg_amt if avg_amt > 0 else 1
                 if cv <= 0.3:
-                    consistency_score = 6
+                    consistency_score = 3
                 elif cv <= 0.6:
-                    consistency_score = 4
-                elif cv <= 1.0:
                     consistency_score = 2
-                else:
+                elif cv <= 1.0:
                     consistency_score = 1
+                else:
+                    consistency_score = 0
             else:
-                consistency_score = 3  # too few txns
+                consistency_score = 1  # too few txns
 
-            # --- category diversity (0-6) ---
-            cats = expense_txns.values('category').annotate(total=Sum('amount'))
-            num_cats = cats.count()
+            # --- category diversity (0-3) ---
+            cat_totals = {}
+            for t in expense_txns:
+                cat_totals[t.category] = cat_totals.get(t.category, 0) + float(t.amount or 0)
+            num_cats = len(cat_totals)
             if num_cats >= 5:
-                diversity_score = 6
+                diversity_score = 3
             elif num_cats >= 3:
-                diversity_score = 4
-            elif num_cats >= 1:
                 diversity_score = 2
+            elif num_cats >= 1:
+                diversity_score = 1
             else:
                 diversity_score = 0
 
@@ -146,8 +153,8 @@ class FinancialHealthCalculator:
     def calculate_savings_ratio(self, month_date):
         """
         Sub-scores:
-          - Savings rate (0-12): (income - expenses) / income
-          - Emergency fund adequacy (0-8): savings / monthly_expenses >= 3 months
+          - Savings rate (0-14): (income - expenses) / income — heavily expense-driven
+          - Emergency fund adequacy (0-6): savings / monthly_expenses >= 3 months
         """
         try:
             start, end = self._month_range(month_date)
@@ -155,23 +162,25 @@ class FinancialHealthCalculator:
             expenses = self._total_expenses(start, end)
             savings = income - expenses
 
-            # --- savings rate (0-12) ---
+            # --- savings rate (0-14) ---
             if income > 0:
                 rate = savings / income
                 if rate >= 0.30:
-                    savings_score = 12
+                    savings_score = 14
                 elif rate >= 0.20:
-                    savings_score = 10
+                    savings_score = 12
                 elif rate >= 0.10:
-                    savings_score = 7
+                    savings_score = 9
+                elif rate >= 0.05:
+                    savings_score = 6
                 elif rate >= 0.0:
-                    savings_score = 4
+                    savings_score = 3
                 else:
-                    savings_score = 0
+                    savings_score = 0  # negative savings (overspending)
             else:
                 savings_score = 0
 
-            # --- emergency fund (0-8) ---
+            # --- emergency fund (0-6) ---
             # Use wallet balance as proxy for liquid emergency fund
             wallet = Wallet.objects.filter(user=self.user).first()
             balance = float(wallet.balance) if wallet else 0
@@ -179,13 +188,13 @@ class FinancialHealthCalculator:
             months_covered = balance / monthly_exp
 
             if months_covered >= 6:
-                emerg_score = 8
-            elif months_covered >= 3:
                 emerg_score = 6
+            elif months_covered >= 3:
+                emerg_score = 4
             elif months_covered >= 1:
-                emerg_score = 3
+                emerg_score = 2
             else:
-                emerg_score = 1
+                emerg_score = 0
 
             total = max(0, min(20, savings_score + emerg_score))
             metrics = {
@@ -224,16 +233,18 @@ class FinancialHealthCalculator:
         """Debt-to-Income ratio from active loans vs real income."""
         try:
             loans = Loan.objects.filter(user=self.user, status='ACTIVE')
-            total_emi = float(loans.aggregate(total=Sum('monthly_emi'))['total'] or Decimal('0'))
+            total_emi = sum(float(l.monthly_emi or 0) for l in loans)
 
             # Use 3-month average income from transactions, fallback to profile income
             end_aware = self._to_aware_datetime(month_date)
             start_3m = end_aware - timedelta(days=90)
-            tx_income_3m = float(
-                Transaction.objects.filter(
+            tx_income_3m = sum(
+                float(t.amount or 0)
+                for t in Transaction.objects.filter(
                     user=self.user, type='income',
                     date__gte=start_3m, date__lt=end_aware
-                ).aggregate(total=Sum('amount'))['total'] or Decimal('0'))
+                )
+            )
             profile_income = self._get_profile_income()
             avg_monthly = max(tx_income_3m / 3, profile_income) if tx_income_3m > 0 else profile_income
             if avg_monthly < 1:
@@ -305,10 +316,13 @@ class FinancialHealthCalculator:
                     m_end_date = m_start_date.replace(month=m_start_date.month + 1, day=1)
                 m_start_aware = self._to_aware_datetime(m_start_date)
                 m_end_aware = self._to_aware_datetime(m_end_date)
-                mi = float(Transaction.objects.filter(
-                    user=self.user, type='income',
-                    date__gte=m_start_aware, date__lt=m_end_aware
-                ).aggregate(total=Sum('amount'))['total'] or Decimal('0'))
+                mi = sum(
+                    float(t.amount or 0)
+                    for t in Transaction.objects.filter(
+                        user=self.user, type='income',
+                        date__gte=m_start_aware, date__lt=m_end_aware
+                    )
+                )
                 if mi == 0:
                     mi = self._get_profile_income()
                 monthly_incomes.append(mi)
@@ -343,35 +357,140 @@ class FinancialHealthCalculator:
 
     # ── Total Score ───────────────────────────────────────────────
     def calculate_total_score(self, month_date):
-        """Aggregate all 5 factors into a 0-100 score and persist."""
+        """
+        Aggregate all 5 factors into a 0-100 score with expense-income dominance.
+
+        The final score blends:
+          60% — pure expense-to-income ratio (high expenses → low score)
+          40% — detailed factor analysis (spending, savings, credit, loans, safety)
+
+        This ensures the score directly reflects how much the user spends
+        relative to their income.
+        """
         spending_score, spending_m, spending_e = self.calculate_spending_discipline(month_date)
         savings_score, savings_m, savings_e = self.calculate_savings_ratio(month_date)
         credit_score, credit_m, credit_e = self.calculate_credit_utilization(month_date)
         loan_score, loan_m, loan_e = self.calculate_loan_burden(month_date)
         risk_score, risk_m, risk_e = self.calculate_risk_exposure(month_date)
 
-        total = max(0, min(100,
-                           spending_score + savings_score + credit_score + loan_score + risk_score))
+        factor_total = spending_score + savings_score + credit_score + loan_score + risk_score
+
+        # ── Expense-Income Dominance Score ──
+        # The CORE signal: how much you spend vs how much you earn.
+        start, end = self._month_range(month_date)
+        income = self._total_income(start, end)
+        expenses = self._total_expenses(start, end)
+
+        if income > 0:
+            expense_ratio = expenses / income
+        else:
+            expense_ratio = 0
+
+        # ── Final score computation ──
+        # When expenses EXCEED income  → score drops harshly (hard cap 15)
+        # When expenses EQUAL income   → score around 20-25
+        # When expenses are moderate   → score 50-70 range
+        # When income >> expenses      → score 75-100 (excellent)
+        if income > 0:
+            if expense_ratio > 1.0:
+                # OVERSPENDING: score crashes. The more you overspend, the worse.
+                # At 100% → 15, at 200% → 5, at 300%+ → 0
+                overspend_penalty = min(15, int((expense_ratio - 1.0) * 15))
+                total = max(0, 15 - overspend_penalty)
+            elif expense_ratio > 0.90:
+                # DANGER ZONE: 90-100% of income spent
+                total = max(0, min(30, int(30 - (expense_ratio - 0.90) * 100)))
+            elif expense_ratio > 0.70:
+                # HIGH: 70-90% of income spent → score 30-55
+                total = int(55 - (expense_ratio - 0.70) * 125)
+                # Blend in some factor score for nuance
+                total = max(30, min(55, int(total * 0.7 + (factor_total / 100) * 55 * 0.3)))
+            elif expense_ratio > 0.50:
+                # MODERATE: 50-70% → score 55-75
+                base = int(75 - (expense_ratio - 0.50) * 100)
+                total = max(55, min(75, int(base * 0.6 + (factor_total / 100) * 75 * 0.4)))
+            elif expense_ratio > 0.30:
+                # GOOD: 30-50% → score 75-90
+                base = int(90 - (expense_ratio - 0.30) * 75)
+                total = max(75, min(90, int(base * 0.6 + (factor_total / 100) * 90 * 0.4)))
+            else:
+                # EXCELLENT: <30% of income spent → score 90-100
+                base = int(100 - expense_ratio * 33)
+                total = max(90, min(100, int(base * 0.5 + (factor_total / 100) * 100 * 0.5)))
+        else:
+            # No income data — use factor score alone, conservative
+            total = max(0, min(40, int(factor_total * 0.4)))
+
+        # Determine human-readable expense level
+        if income > 0:
+            if expense_ratio <= 0.30:
+                expense_level = 'Very Low'
+            elif expense_ratio <= 0.50:
+                expense_level = 'Low'
+            elif expense_ratio <= 0.70:
+                expense_level = 'Moderate'
+            elif expense_ratio <= 0.85:
+                expense_level = 'High'
+            elif expense_ratio <= 1.0:
+                expense_level = 'Very High'
+            else:
+                expense_level = 'Critical (exceeds income)'
+        else:
+            expense_level = 'Unknown (no income data)'
 
         explanation = (
             f"Financial Health Score: {total}/100\n\n"
-            f"Breakdown:\n"
+            f"Income: {income:,.0f} | Expenses: {expenses:,.0f} | "
+            f"Expense Ratio: {expense_ratio:.0%} ({expense_level})\n\n"
+            f"How Your Score Works:\n"
+            f"- Expenses {'EXCEED' if expense_ratio > 1 else 'are ' + f'{expense_ratio:.0%} of'} your income → Score {total}/100\n"
+            f"- Lower expenses relative to income = higher score\n\n"
+            f"Factor Breakdown:\n"
             f"- Spending Discipline: {spending_score}/20\n"
-            f"- Savings Ratio: {savings_score}/20\n"
+            f"- Savings Health: {savings_score}/20\n"
             f"- Credit Discipline: {credit_score}/20\n"
             f"- Loan Burden: {loan_score}/20\n"
-            f"- Risk Exposure: {risk_score}/20\n\n"
+            f"- Financial Safety: {risk_score}/20\n\n"
             f"{spending_e}\n{savings_e}\n{credit_e}\n{loan_e}\n{risk_e}"
         )
 
+        # ── Generate recommendations based on expense level and factors ──
         recommendations = []
-        if spending_score < 14:
+
+        # Expense-driven recommendations (highest priority)
+        if expense_ratio > 1.0:
+            recommendations.append({
+                'title': 'Spending Exceeds Income',
+                'description': f'You are spending {expense_ratio:.0%} of your income. Cut non-essential expenses immediately to avoid debt.',
+                'priority': 'critical',
+            })
+        elif expense_ratio > 0.85:
+            recommendations.append({
+                'title': 'Reduce High Expenses',
+                'description': f'Your expenses consume {expense_ratio:.0%} of income. Target under 70% by trimming discretionary spending.',
+                'priority': 'high',
+            })
+        elif expense_ratio > 0.70:
+            recommendations.append({
+                'title': 'Optimize Spending',
+                'description': f'Expenses are {expense_ratio:.0%} of income. Aim for 50-60% to build stronger savings.',
+                'priority': 'medium',
+            })
+        elif expense_ratio <= 0.50 and income > 0:
+            recommendations.append({
+                'title': 'Great Expense Control',
+                'description': f'Spending only {expense_ratio:.0%} of income — excellent! Consider investing the surplus.',
+                'priority': 'low',
+            })
+
+        # Factor-based recommendations
+        if spending_score < 12:
             recommendations.append({
                 'title': 'Improve Spending Discipline',
                 'description': 'Keep expenses below 70% of income and diversify spending across categories.',
                 'priority': 'high',
             })
-        if savings_score < 14:
+        if savings_score < 12:
             recommendations.append({
                 'title': 'Increase Savings Rate',
                 'description': 'Aim to save at least 20% of your monthly income.',

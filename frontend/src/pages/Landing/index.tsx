@@ -119,7 +119,7 @@ function HeroCard3D() {
                         <div className="flex items-end justify-between mt-auto">
                             <div>
                                 <p className="text-white/25 text-[7px] tracking-[0.25em] mb-0.5">CARD HOLDER</p>
-                                <p className="text-white text-xs font-semibold tracking-wider">ARJUN SHARMA</p>
+                                <p className="text-white text-xs font-semibold tracking-wider">YOUR NAME</p>
                             </div>
                             <div>
                                 <p className="text-white/25 text-[7px] tracking-[0.25em] mb-0.5">EXPIRES</p>

@@ -21,23 +21,31 @@ def get_current_score(request):
     Returns the most recent score or calculates a new one if none exists
     """
     try:
-        # Try to get the most recent score
-        latest_score = FinancialHealthScore.objects.filter(
-            user=request.user
-        ).order_by('-calculation_date').first()
-        
-        # If no score exists or it's older than 7 days, calculate a new one
-        if not latest_score or (timezone.now() - latest_score.calculation_date).days > 7:
-            calculator = FinancialHealthCalculator(request.user)
-            current_month = timezone.now().date().replace(day=1)
-            latest_score = calculator.calculate_total_score(current_month)
-        
+        # Always recalculate to reflect latest income/expense reality
+        calculator = FinancialHealthCalculator(request.user)
+        current_month = timezone.now().date().replace(day=1)
+        latest_score = calculator.calculate_total_score(current_month)
+
+        # Compute current month income/expenses for the response
+        from transactions.models import Transaction
+        now = timezone.now()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        month_txns = Transaction.objects.filter(user=request.user, date__gte=month_start)
+        monthly_income = sum(float(t.amount or 0) for t in month_txns.filter(type='income'))
+        monthly_expense = sum(float(t.amount or 0) for t in month_txns.filter(type='expense'))
+        profile_income = float(request.user.income or 0)
+        effective_income = max(monthly_income, profile_income)
+        expense_ratio = round(monthly_expense / effective_income, 3) if effective_income > 0 else 0
+
         return Response({
             'score': latest_score.score,
             'category': latest_score.get_score_category(),
             'color': latest_score.get_score_color(),
             'month': latest_score.month,
             'calculation_date': latest_score.calculation_date,
+            'income': round(effective_income, 2),
+            'expenses': round(monthly_expense, 2),
+            'expense_ratio': expense_ratio,
             'factors': {
                 'spending_discipline': latest_score.spending_discipline_score,
                 'savings_ratio': latest_score.savings_ratio_score,

@@ -381,7 +381,7 @@ export default function DashboardLayout() {
                                 {(() => {
                                     const h = new Date().getHours();
                                     const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-                                    return `${greeting}, ${user?.first_name || user?.username?.split('_')[0] || 'there'} ??`;
+                                    return `${greeting}, ${user?.first_name || user?.username?.split('_')[0] || 'there'} 👋`;
                                 })()}
                             </p>
                             <p className="text-[11px] text-3">Your financial dashboard</p>

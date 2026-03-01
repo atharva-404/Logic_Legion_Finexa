@@ -3,10 +3,11 @@ from django.db import models
 import uuid
 from datetime import timedelta
 from django.utils import timezone
+from core.encryption import EncryptedDecimalField, EncryptedCharField
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
-    income = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    income = EncryptedDecimalField(max_digits=12, decimal_places=2, default='0.00')
     
     # Onboarding
     onboarding_completed = models.BooleanField(default=False)

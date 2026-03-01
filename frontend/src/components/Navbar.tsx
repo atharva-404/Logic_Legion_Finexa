@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, TrendingUp } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ThemeToggle from './ThemeToggle';
 
 export default function Navbar() {
     const { user } = useAuth();
-    const { isDark, toggleTheme } = useTheme();
-    // Assuming healthScore might come from user object or we can mock it for now since store is not found
-    const healthScore = user?.financial_health_score || 0;
+    const { isDark } = useTheme();
     const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
@@ -48,10 +46,8 @@ export default function Navbar() {
                         <div className="absolute -inset-1.5 rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-300"
                             style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.55), transparent 70%)', filter: 'blur(6px)', animation: 'glowPulse 3s ease-in-out infinite' }} />
                     )}
-                    <div className="relative w-9 h-9 rounded-xl flex items-center justify-center glow-sm"
-                        style={{ background: 'linear-gradient(135deg, #6d28d9, #a855f7)' }}>
-                        <TrendingUp size={18} className="text-white" />
-                    </div>
+                    <img src="/logo.png" alt="Finexa" className="relative w-9 h-9 object-contain"
+                        style={{ filter: isDark ? 'drop-shadow(0 0 10px rgba(168,85,247,0.9))' : 'none' }} />
                 </div>
                 <span className="font-display font-extrabold text-xl"
                     style={isDark
@@ -74,33 +70,6 @@ export default function Navbar() {
                         </Link>
                     ))}
                 </div>
-
-                {user && (
-                    <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium"
-                        style={isDark
-                            ? { background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: 'rgba(245,158,11,0.85)' }
-                            : { background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.12)', color: '#374151' }}>
-                        <Zap size={9} style={{ color: isDark ? '#f59e0b' : '#374151' }} />
-                        {user.ai_credits != null
-                            ? user.ai_credits >= 1000
-                                ? `${(user.ai_credits / 1000).toFixed(0)}k credits`
-                                : `${user.ai_credits} credits`
-                            : '100k credits'}
-                    </div>
-                )}
-
-                {user && (
-                    <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all duration-300"
-                        style={{
-                            background: isDark ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.04)',
-                            border: isDark ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(34,197,94,0.2)',
-                            color: isDark ? '#4ade80' : '#15803d'
-                        }}>
-                        <div className="w-1 h-1 rounded-full bg-green-500" style={{ boxShadow: isDark ? '0 0 6px #22c55e' : 'none' }} />
-                        <span className="opacity-80">Fin Score</span>
-                        <span className="font-bold">{healthScore || 0}</span>
-                    </div>
-                )}
 
                 {/* Theme toggle */}
                 <ThemeToggle size="sm" />

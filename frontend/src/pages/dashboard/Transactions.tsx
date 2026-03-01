@@ -136,8 +136,8 @@ export default function Transactions() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                         <div>
                             <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Amount (₹)</label>
-                            <input type="number" className="field text-sm" placeholder="0" value={form.amount}
-                                onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+                            <input type="number" className="field text-sm" placeholder="0" min="0" value={form.amount}
+                                onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setForm(f => ({ ...f, amount: v })); }} />
                         </div>
                         <div>
                             <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Type</label>
@@ -160,6 +160,7 @@ export default function Transactions() {
                         <div>
                             <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Date</label>
                             <input type="date" className="field text-sm" value={form.date}
+                                min={new Date().toISOString().split('T')[0]}
                                 onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
                         </div>
                     </div>

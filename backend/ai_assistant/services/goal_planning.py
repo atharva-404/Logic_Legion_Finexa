@@ -24,12 +24,10 @@ def _gather_user_financial_context(user):
     ninety_days_ago = timezone.now() - timedelta(days=90)
 
     # Transactions last 90 days for trend analysis
-    txns = Transaction.objects.filter(user=user, date__gte=ninety_days_ago).values(
-        'type', 'category', 'amount', 'date'
-    )
+    txns = list(Transaction.objects.filter(user=user, date__gte=ninety_days_ago))
 
-    total_income_90d = sum(float(t['amount']) for t in txns if t['type'] == 'income')
-    total_expense_90d = sum(float(t['amount']) for t in txns if t['type'] == 'expense')
+    total_income_90d = sum(float(t.amount or 0) for t in txns if t.type == 'income')
+    total_expense_90d = sum(float(t.amount or 0) for t in txns if t.type == 'expense')
     monthly_income = round(total_income_90d / 3, 2) if total_income_90d else 0
     monthly_expense = round(total_expense_90d / 3, 2) if total_expense_90d else 0
     disposable_income = max(0, monthly_income - monthly_expense)
@@ -37,9 +35,9 @@ def _gather_user_financial_context(user):
     # Category breakdown
     cat_spend = {}
     for t in txns:
-        if t['type'] == 'expense':
-            cat = t['category'] or 'Other'
-            cat_spend[cat] = cat_spend.get(cat, 0) + float(t['amount'])
+        if t.type == 'expense':
+            cat = t.category or 'Other'
+            cat_spend[cat] = cat_spend.get(cat, 0) + float(t.amount or 0)
 
     # Wallet balance
     wallet_balance = 0

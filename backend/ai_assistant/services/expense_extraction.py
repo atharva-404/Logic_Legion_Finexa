@@ -18,6 +18,9 @@ import pytesseract
 from google import genai
 from google.api_core.exceptions import ResourceExhausted, NotFound
 
+# Encryption utilities
+from core.encryption import encrypt_text, decrypt_text, encrypt_json, decrypt_json
+
 # Initialize Gemini client with new package
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
@@ -154,8 +157,9 @@ def save_expense_document_to_mongo(user_id, uploaded_file, raw_text, structured_
         "file_name": uploaded_file.name,
         "content_type": getattr(uploaded_file, "content_type", None),
         "size": uploaded_file.size,
-        "raw_text": raw_text,
-        "extracted_data": structured_data,  # key-value document
+        "raw_text": encrypt_text(raw_text),  # 🔒 Encrypted
+        "extracted_data": encrypt_json(structured_data),  # 🔒 Encrypted
+        "is_encrypted": True,  # Flag for migration awareness
         "created_at": datetime.utcnow(),
     }
     result = get_mongo_collection().insert_one(document)
@@ -165,7 +169,7 @@ def save_expense_document_to_mongo(user_id, uploaded_file, raw_text, structured_
 def get_expense_document_by_id(doc_id: str):
     """Retrieve a stored expense document from MongoDB by its ObjectId string.
 
-    Returns the document dict or None if not found / invalid id.
+    Returns the document dict (with decrypted fields) or None if not found / invalid id.
     """
     if not doc_id:
         return None
@@ -174,11 +178,28 @@ def get_expense_document_by_id(doc_id: str):
     except Exception:
         # if it's not a valid ObjectId, try to find by string _id
         try:
-            return get_mongo_collection().find_one({"_id": doc_id})
+            doc = get_mongo_collection().find_one({"_id": doc_id})
+            return _decrypt_mongo_document(doc) if doc else None
         except Exception:
             return None
 
-    return get_mongo_collection().find_one({"_id": oid})
+    doc = get_mongo_collection().find_one({"_id": oid})
+    return _decrypt_mongo_document(doc) if doc else None
+
+
+def _decrypt_mongo_document(doc):
+    """Decrypt encrypted fields in a MongoDB expense document."""
+    if doc is None:
+        return None
+    
+    # Check if document is encrypted (new format)
+    if doc.get("is_encrypted"):
+        if isinstance(doc.get("raw_text"), str):
+            doc["raw_text"] = decrypt_text(doc["raw_text"])
+        if isinstance(doc.get("extracted_data"), str):
+            doc["extracted_data"] = decrypt_json(doc["extracted_data"])
+    
+    return doc
 
 
 def extracted_data_to_csv_bytes(extracted_data: dict) -> bytes:

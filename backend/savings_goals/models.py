@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from core.encryption import EncryptedDecimalField
 import math
 
 
@@ -13,11 +14,11 @@ class SavingsGoal(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="savings_goals")
     title = models.CharField(max_length=200, default="Untitled Goal")
-    target_amount = models.DecimalField(max_digits=12, decimal_places=2)
-    current_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    target_amount = EncryptedDecimalField(max_digits=12, decimal_places=2)
+    current_amount = EncryptedDecimalField(max_digits=12, decimal_places=2, default='0.00')
     deadline = models.DateField(null=True, blank=True)
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    monthly_contribution = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    monthly_contribution = EncryptedDecimalField(max_digits=10, decimal_places=2, default='0.00')
     icon = models.CharField(max_length=10, default='🎯')
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -156,6 +156,18 @@ export default function WalletPage() {
         const num = newCard.number.replace(/\s/g, '');
         if (num.length < 15 || !newCard.holder || !newCard.expiry) return;
 
+        // Reject past expiry
+        const [mm, yy] = newCard.expiry.split('/');
+        if (mm && yy) {
+            const expMonth = parseInt(mm, 10);
+            const expYear = 2000 + parseInt(yy, 10);
+            const now = new Date();
+            if (expYear < now.getFullYear() || (expYear === now.getFullYear() && expMonth < now.getMonth() + 1)) {
+                showToast('Card expiry cannot be in the past');
+                return;
+            }
+        }
+
         addCard({
             number: newCard.number,
             last4: num.slice(-4),

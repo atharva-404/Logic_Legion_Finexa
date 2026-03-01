@@ -198,8 +198,8 @@ function GoalCard({ goal, ai, onDelete, onUpdate, isDark }: { goal: Goal; ai?: G
                             <div className="flex gap-2">
                                 <div className="relative flex-1">
                                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">₹</span>
-                                    <input type="number" placeholder="Amount" className="input-field text-sm pl-6 w-full"
-                                        value={savingsAmount} onChange={e => setSavingsAmount(e.target.value)}
+                                    <input type="number" placeholder="Amount" className="input-field text-sm pl-6 w-full" min="0"
+                                        value={savingsAmount} onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setSavingsAmount(v); }}
                                         onKeyDown={e => e.key === 'Enter' && handleAddSavings()} />
                                 </div>
                                 <button onClick={handleAddSavings} disabled={saving || !savingsAmount}
@@ -231,17 +231,18 @@ function GoalCard({ goal, ai, onDelete, onUpdate, isDark }: { goal: Goal; ai?: G
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <label className="text-[10px] text-slate-500 mb-0.5 block">Target (₹)</label>
-                                    <input type="number" className="input-field text-xs w-full" value={editForm.target_amount}
-                                        onChange={e => setEditForm(f => ({ ...f, target_amount: e.target.value }))} />
+                                    <input type="number" className="input-field text-xs w-full" min="0" value={editForm.target_amount}
+                                        onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setEditForm(f => ({ ...f, target_amount: v })); }} />
                                 </div>
                                 <div>
                                     <label className="text-[10px] text-slate-500 mb-0.5 block">Monthly (₹)</label>
-                                    <input type="number" className="input-field text-xs w-full" value={editForm.monthly_contribution}
-                                        onChange={e => setEditForm(f => ({ ...f, monthly_contribution: e.target.value }))} />
+                                    <input type="number" className="input-field text-xs w-full" min="0" value={editForm.monthly_contribution}
+                                        onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setEditForm(f => ({ ...f, monthly_contribution: v })); }} />
                                 </div>
                                 <div>
                                     <label className="text-[10px] text-slate-500 mb-0.5 block">Deadline</label>
                                     <input type="date" className="input-field text-xs w-full" value={editForm.deadline}
+                                        min={new Date().toISOString().split('T')[0]}
                                         onChange={e => setEditForm(f => ({ ...f, deadline: e.target.value }))} />
                                 </div>
                                 <div>
@@ -854,24 +855,25 @@ export default function GoalsTracker() {
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-xs text-slate-400 mb-1.5 block">Target Amount (₹)</label>
-                                            <input type="number" className="input-field text-sm" placeholder="500000"
-                                                value={form.targetAmount} onChange={e => setForm(f => ({ ...f, targetAmount: e.target.value }))} />
+                                            <input type="number" className="input-field text-sm" placeholder="500000" min="0"
+                                                value={form.targetAmount} onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setForm(f => ({ ...f, targetAmount: v })); }} />
                                         </div>
                                         <div>
                                             <label className="text-xs text-slate-400 mb-1.5 block">Current Savings (₹)</label>
-                                            <input type="number" className="input-field text-sm" placeholder="0"
-                                                value={form.currentAmount} onChange={e => setForm(f => ({ ...f, currentAmount: e.target.value }))} />
+                                            <input type="number" className="input-field text-sm" placeholder="0" min="0"
+                                                value={form.currentAmount} onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setForm(f => ({ ...f, currentAmount: v })); }} />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-xs text-slate-400 mb-1.5 block">Monthly Contribution (₹)</label>
-                                            <input type="number" className="input-field text-sm" placeholder="5000"
-                                                value={form.monthlyContribution} onChange={e => setForm(f => ({ ...f, monthlyContribution: e.target.value }))} />
+                                            <input type="number" className="input-field text-sm" placeholder="5000" min="0"
+                                                value={form.monthlyContribution} onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setForm(f => ({ ...f, monthlyContribution: v })); }} />
                                         </div>
                                         <div>
                                             <label className="text-xs text-slate-400 mb-1.5 block">Target Date</label>
                                             <input type="date" className="input-field text-sm"
+                                                min={new Date().toISOString().split('T')[0]}
                                                 value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
                                         </div>
                                     </div>

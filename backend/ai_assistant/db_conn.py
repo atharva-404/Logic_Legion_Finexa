@@ -1,10 +1,13 @@
 # ai_assistant/mongo_client.py
 from pymongo import MongoClient
+from django.conf import settings
+import os
 
-# ⛔ TEMP: hard-code Atlas URI here
-MONGO_URI = "mongodb+srv://atharva:atharva@cluster0.i441yof.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+# Use environment variable or Django settings — NEVER hard-code credentials
+MONGO_URI = os.getenv("MONGO_URI") or getattr(settings, "MONGODB_URI", None)
 
-print("DEBUG MONGO_URI =", MONGO_URI)  # <--- very important
+if not MONGO_URI:
+    raise RuntimeError("MONGO_URI environment variable is not set. Add it to your .env file.")
 
 _client = None
 
@@ -16,5 +19,5 @@ def get_client():
 
 def get_db(name=None):
     client = get_client()
-    dbname = name or "om"
+    dbname = name or getattr(settings, "MONGODB_DB_NAME", "om")
     return client[dbname]

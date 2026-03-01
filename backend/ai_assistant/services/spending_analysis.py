@@ -23,16 +23,16 @@ def analyze_user_spending(user):
     thirty_days_ago = timezone.now() - timedelta(days=30)
     
     # Fetch Manual Transactions (Income/Expense)
-    manual_txns = Transaction.objects.filter(
+    manual_txns = list(Transaction.objects.filter(
         user=user, 
         date__gte=thirty_days_ago
-    ).values('type', 'category', 'amount', 'date')
+    ))
     
     # Fetch Wallet Transactions
-    wallet_txns = WalletTransaction.objects.filter(
+    wallet_txns = list(WalletTransaction.objects.filter(
         wallet__user=user,
         timestamp__gte=thirty_days_ago
-    ).values('transaction_type', 'amount', 'timestamp', 'description')
+    ))
     
     # Format for LLM
     txn_summary = "Recent Transactions (Last 30 Days):\n"
@@ -45,12 +45,12 @@ def analyze_user_spending(user):
         }
 
     for t in manual_txns:
-        txn_summary += f"- {t['date'].strftime('%Y-%m-%d')}: {t['type'].upper()} ({t['category']}) ₹{t['amount']}\n"
+        txn_summary += f"- {t.date.strftime('%Y-%m-%d')}: {t.type.upper()} ({t.category}) ₹{t.amount}\n"
         
     for t in wallet_txns:
-        t_type = t['transaction_type']
-        desc = t['description'] or "Wallet txn"
-        txn_summary += f"- {t['timestamp'].strftime('%Y-%m-%d')}: WALLET {t_type} - {desc} ₹{t['amount']}\n"
+        t_type = t.transaction_type
+        desc = t.description or "Wallet txn"
+        txn_summary += f"- {t.timestamp.strftime('%Y-%m-%d')}: WALLET {t_type} - {desc} ₹{t.amount}\n"
         
     # 2. Prompt Gemini
     system_prompt = """

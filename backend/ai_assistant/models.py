@@ -3,15 +3,18 @@ from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from users.models import User
+from core.encryption import (
+    EncryptedDecimalField, EncryptedTextField, EncryptedJSONField
+)
 
 
 class Document(models.Model):
     """Represents an uploaded document and its extracted text."""
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     file_name = models.CharField(max_length=512)
-    content = models.TextField(blank=True)  # extracted text
+    content = EncryptedTextField(blank=True)  # extracted text (encrypted)
     mongo_doc_id = models.CharField(max_length=128, blank=True, default='')  # links to MongoDB expense doc
-    summary = models.TextField(blank=True, default='')  # AI-generated summary
+    summary = EncryptedTextField(blank=True, default='')  # AI-generated summary (encrypted)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -58,11 +61,11 @@ class Wallet(models.Model):
         on_delete=models.CASCADE,
         related_name='wallet'
     )
-    balance = models.DecimalField(
+    balance = EncryptedDecimalField(
         max_digits=12,
         decimal_places=2,
-        default=0.00,
-        help_text="Current wallet balance"
+        default='0.00',
+        help_text="Current wallet balance (encrypted)"
     )
     currency = models.CharField(
         max_length=3,
@@ -118,15 +121,15 @@ class WalletTransaction(models.Model):
         choices=TRANSACTION_TYPES,
         help_text="Type of transaction"
     )
-    amount = models.DecimalField(
+    amount = EncryptedDecimalField(
         max_digits=12,
         decimal_places=2,
-        help_text="Transaction amount"
+        help_text="Transaction amount (encrypted)"
     )
-    description = models.TextField(
+    description = EncryptedTextField(
         blank=True,
         null=True,
-        help_text="Transaction description or notes"
+        help_text="Transaction description or notes (encrypted)"
     )
     status = models.CharField(
         max_length=10,
@@ -141,10 +144,10 @@ class WalletTransaction(models.Model):
         null=True,
         help_text="Unique reference ID for this transaction"
     )
-    metadata = models.JSONField(
+    metadata = EncryptedJSONField(
         default=dict,
         blank=True,
-        help_text="Additional transaction metadata"
+        help_text="Additional transaction metadata (encrypted)"
     )
 
     class Meta:
@@ -213,10 +216,10 @@ class FinancialHealthScore(models.Model):
         blank=True,
         help_text="AI-generated explanation of score and changes"
     )
-    recommendations = models.JSONField(
+    recommendations = EncryptedJSONField(
         default=list,
         blank=True,
-        help_text="Actionable recommendations for improvement"
+        help_text="Actionable recommendations for improvement (encrypted)"
     )
     
     class Meta:
@@ -234,12 +237,12 @@ class FinancialHealthScore(models.Model):
         return f"FinScore({self.user.username}, {self.score}/100, {self.month})"
     
     def get_score_category(self):
-        """Return score category: Poor, Fair, Good, or Excellent"""
-        if self.score <= 40:
+        """Return score category based on expense-driven health score"""
+        if self.score <= 35:
             return 'Poor'
-        elif self.score <= 60:
+        elif self.score <= 55:
             return 'Fair'
-        elif self.score <= 80:
+        elif self.score <= 75:
             return 'Good'
         else:
             return 'Excellent'
@@ -282,9 +285,9 @@ class ScoreFactorDetail(models.Model):
         default=0.2,
         help_text="Weight of this factor (default: 0.2 = 20%)"
     )
-    metrics = models.JSONField(
+    metrics = EncryptedJSONField(
         default=dict,
-        help_text="Raw metrics used to calculate this factor score"
+        help_text="Raw metrics used to calculate this factor score (encrypted)"
     )
     explanation = models.TextField(
         help_text="Explanation of how this factor score was calculated"
@@ -308,8 +311,8 @@ class Loan(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="loans")
     name = models.CharField(max_length=255, help_text="e.g. HDFC Home Loan")
     loan_type = models.CharField(max_length=100, default="Personal Loan")
-    principal_amount = models.DecimalField(max_digits=12, decimal_places=2)
-    monthly_emi = models.DecimalField(max_digits=10, decimal_places=2)
+    principal_amount = EncryptedDecimalField(max_digits=12, decimal_places=2)
+    monthly_emi = EncryptedDecimalField(max_digits=10, decimal_places=2)
     interest_rate = models.FloatField(null=True, blank=True)
     tenure_months = models.IntegerField()
     emis_paid = models.IntegerField(default=0)
@@ -331,9 +334,9 @@ class SpendingPattern(models.Model):
     analysis_date = models.DateTimeField(auto_now_add=True)
     
     # Store the result as structured JSON
-    analysis_data = models.JSONField(
+    analysis_data = EncryptedJSONField(
         default=dict,
-        help_text="Full JSON output from AI analysis (patterns, anomalies, recommendations)"
+        help_text="Full JSON output from AI analysis (patterns, anomalies, recommendations) (encrypted)"
     )
     
     class Meta:

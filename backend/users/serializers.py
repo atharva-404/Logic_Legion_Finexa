@@ -337,6 +337,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     Used in protected endpoints to return authenticated user details.
     All sensitive fields are read-only to prevent unauthorized modification.
     """
+    income = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+
     class Meta:
         model = User
         fields = ('id', 'email', 'username', 'first_name', 'last_name', 'is_active', 'date_joined', 'credits', 'income', 'onboarding_completed')
@@ -435,6 +437,7 @@ class UserProfileFullSerializer(serializers.ModelSerializer):
     Full user profile with summary stats for the settings page.
     """
     settings = UserSettingsSerializer(read_only=True)
+    income = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = User

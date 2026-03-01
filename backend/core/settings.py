@@ -149,6 +149,15 @@ MONGODB_URI = os.getenv("MONGO_URI")
 MONGODB_DB_NAME = os.getenv("MONGO_DBNAME", "om")
 MONGODB_COLLECTION_NAME = "expenses"  # you can rename if you want
 
+# ---------- Field-Level Encryption (AES-256 via Fernet) ----------
+# Generate a key with:  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Store it in .env as FIELD_ENCRYPTION_KEY=<your-key>
+FIELD_ENCRYPTION_KEY = os.getenv(
+    "FIELD_ENCRYPTION_KEY",
+    # Fallback for dev only — MUST be set in production .env
+    "KlNRKySijzVwzn6saAQZBMtZm35I0h5Zrg6s3DrW0-A="  # ← replace in production!
+)
+
 
 CHANNEL_LAYERS = {
     "default": {

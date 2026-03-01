@@ -153,8 +153,8 @@ export default function Onboarding() {
                                         <label className={`text-xs mb-1.5 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Monthly Income (₹) *</label>
                                         <div className="relative">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">₹</span>
-                                            <input type="number" className="input-field text-sm w-full pl-7" placeholder="e.g. 50000"
-                                                value={income} onChange={e => setIncome(e.target.value)} />
+                                            <input type="number" className="input-field text-sm w-full pl-7" placeholder="e.g. 50000" min="0"
+                                                value={income} onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) setIncome(v); }} />
                                         </div>
                                         <p className={`text-[10px] mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Your total monthly salary/income before deductions</p>
                                     </div>
@@ -220,8 +220,8 @@ export default function Onboarding() {
                                                     <div className="relative">
                                                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">₹</span>
                                                         <input type="number" className="input-field text-xs w-full pl-6"
-                                                            placeholder="Amount" value={entry.amount}
-                                                            onChange={e => updateSpending(idx, 'amount', e.target.value)} />
+                                                            placeholder="Amount" min="0" value={entry.amount}
+                                                            onChange={e => { const v = e.target.value; if (v === '' || Number(v) >= 0) updateSpending(idx, 'amount', v); }} />
                                                     </div>
                                                     <input className="input-field text-xs w-full"
                                                         placeholder="Note (optional)" value={entry.description}
