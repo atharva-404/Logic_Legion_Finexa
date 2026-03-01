@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { formatFullCurrency } from '../../lib/calculations';
 import { GoalsAPI } from '../../lib/api';
+import { useTheme } from '../../contexts/ThemeContext';
 
 /* ─── Types ──────────────────────────────────────────── */
 interface Goal {
@@ -72,7 +73,7 @@ const PRIORITY_STYLES: Record<string, { bg: string; text: string; border: string
 };
 
 /* ─── Gauge Component ────────────────────────────────── */
-function MiniGauge({ value, size = 60, color = '#a855f7', label }: { value: number; size?: number; color?: string; label?: string }) {
+function MiniGauge({ value, size = 60, color = '#a855f7', label, isDark = true }: { value: number; size?: number; color?: string; label?: string; isDark?: boolean }) {
     const r = size * 0.38;
     const circ = 2 * Math.PI * r;
     const dash = circ * 0.75;
@@ -87,15 +88,15 @@ function MiniGauge({ value, size = 60, color = '#a855f7', label }: { value: numb
                     fill="none" stroke={color} strokeWidth={size * 0.08} strokeLinecap="round"
                     strokeDasharray={dash} initial={{ strokeDashoffset: dash }}
                     animate={{ strokeDashoffset: offset }} transition={{ duration: 1.2, ease: 'easeOut' }} />
-                <text x={cx} y={cy - 4} textAnchor="middle" fontSize={size * 0.22} fontWeight="700" fill="white">{value}%</text>
+                <text x={cx} y={cy - 4} textAnchor="middle" fontSize={size * 0.22} fontWeight="700" fill={isDark ? 'white' : '#1e293b'}>{value}%</text>
             </svg>
-            {label && <span className="text-[10px] text-slate-500 mt-0.5">{label}</span>}
+            {label && <span className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{label}</span>}
         </div>
     );
 }
 
 /* ─── Goal Card ──────────────────────────────────────── */
-function GoalCard({ goal, ai, onDelete, onUpdate }: { goal: Goal; ai?: GoalAI; onDelete: () => void; onUpdate: (id: number, data: Record<string, any>) => Promise<void> }) {
+function GoalCard({ goal, ai, onDelete, onUpdate, isDark }: { goal: Goal; ai?: GoalAI; onDelete: () => void; onUpdate: (id: number, data: Record<string, any>) => Promise<void>; isDark: boolean }) {
     const [expanded, setExpanded] = useState(false);
     const [showAddSavings, setShowAddSavings] = useState(false);
     const [savingsAmount, setSavingsAmount] = useState('');
@@ -141,7 +142,7 @@ function GoalCard({ goal, ai, onDelete, onUpdate }: { goal: Goal; ai?: GoalAI; o
 
     return (
         <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-            className="glass-card p-5">
+            className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -150,7 +151,7 @@ function GoalCard({ goal, ai, onDelete, onUpdate }: { goal: Goal; ai?: GoalAI; o
                         {goal.icon}
                     </div>
                     <div>
-                        <h3 className="text-white font-semibold">{goal.title}</h3>
+                        <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{goal.title}</h3>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${pStyle.bg} ${pStyle.text} ${pStyle.border}`}>
                             {goal.priority.toUpperCase()}
                         </span>
@@ -169,11 +170,11 @@ function GoalCard({ goal, ai, onDelete, onUpdate }: { goal: Goal; ai?: GoalAI; o
 
             {/* Progress */}
             <div className="mb-3">
-                <div className="flex justify-between text-xs text-slate-400 mb-1.5">
+                <div className="flex justify-between text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>
                     <span>{formatFullCurrency(goal.current_amount)}</span>
                     <span>{formatFullCurrency(goal.target_amount)}</span>
                 </div>
-                <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
                     <motion.div className="h-full rounded-full" initial={{ width: 0 }}
                         animate={{ width: `${progressPct}%` }} transition={{ duration: 1.2, ease: 'easeOut' }}
                         style={{ background: `linear-gradient(90deg, #a855f780, #a855f7)` }} />
@@ -265,17 +266,17 @@ function GoalCard({ goal, ai, onDelete, onUpdate }: { goal: Goal; ai?: GoalAI; o
             {/* Stats row */}
             <div className="grid grid-cols-3 gap-2 mb-2">
                 <div className="p-2 rounded-lg text-center" style={{ background: 'rgba(168,85,247,0.06)' }}>
-                    <div className="text-[10px] text-slate-500 mb-0.5">Required/mo</div>
-                    <div className="font-bold text-white text-sm">{formatFullCurrency(goal.required_monthly)}</div>
+                    <div className="text-[10px] mb-0.5" style={{ color: 'var(--text-muted)' }}>Required/mo</div>
+                    <div className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{formatFullCurrency(goal.required_monthly)}</div>
                 </div>
                 <div className="p-2 rounded-lg text-center" style={{ background: 'rgba(168,85,247,0.06)' }}>
-                    <div className="text-[10px] text-slate-500 mb-0.5">Contributing/mo</div>
+                    <div className="text-[10px] mb-0.5" style={{ color: 'var(--text-muted)' }}>Contributing/mo</div>
                     <div className="font-bold text-sm" style={{ color: goal.monthly_contribution >= goal.required_monthly ? '#10b981' : '#f59e0b' }}>
                         {formatFullCurrency(goal.monthly_contribution)}
                     </div>
                 </div>
                 <div className="p-2 rounded-lg text-center" style={{ background: 'rgba(168,85,247,0.06)' }}>
-                    <div className="text-[10px] text-slate-500 mb-0.5">{goal.delay_months > 0 ? 'Delay' : 'On Track'}</div>
+                    <div className="text-[10px] mb-0.5" style={{ color: 'var(--text-muted)' }}>{goal.delay_months > 0 ? 'Delay' : 'On Track'}</div>
                     <div className={`font-bold text-sm ${goal.delay_months > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
                         {goal.delay_months > 0 ? `+${goal.delay_months} mo` : `${goal.months_left} mo left`}
                     </div>
@@ -284,15 +285,15 @@ function GoalCard({ goal, ai, onDelete, onUpdate }: { goal: Goal; ai?: GoalAI; o
 
             {/* AI insights (if available) */}
             {ai && (
-                <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-800/50">
-                    <MiniGauge value={ai.feasibility_pct} size={52} color={feasColor} label="Feasibility" />
-                    <MiniGauge value={ai.achievement_probability_pct} size={52} color="#3b82f6" label="Probability" />
+                <div className="flex items-center gap-3 mt-3 pt-3" style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}>
+                    <MiniGauge value={ai.feasibility_pct} size={52} color={feasColor} label="Feasibility" isDark={isDark} />
+                    <MiniGauge value={ai.achievement_probability_pct} size={52} color="#3b82f6" label="Probability" isDark={isDark} />
                     <div className="flex-1 ml-1">
                         <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full mb-1 ${ai.feasibility_status === 'Highly Feasible' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : ai.feasibility_status === 'Moderately Feasible' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
                             {ai.feasibility_status}
                         </span>
                         {ai.savings_gap > 0 && (
-                            <p className="text-[10px] text-slate-500">Gap: {formatFullCurrency(ai.savings_gap)}/mo</p>
+                            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Gap: {formatFullCurrency(ai.savings_gap)}/mo</p>
                         )}
                     </div>
                 </div>
@@ -303,18 +304,18 @@ function GoalCard({ goal, ai, onDelete, onUpdate }: { goal: Goal; ai?: GoalAI; o
                 {expanded && ai && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden">
-                        <div className="mt-3 pt-3 border-t border-slate-800/50 space-y-2">
-                            <p className="text-xs text-slate-400">{ai.probability_explanation}</p>
+                        <div className="mt-3 pt-3 space-y-2" style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}>
+                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{ai.probability_explanation}</p>
                             {ai.budget_suggestions?.length > 0 && (
                                 <div>
-                                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">💡 Budget Tips</p>
+                                    <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>💡 Budget Tips</p>
                                     {ai.budget_suggestions.map((s, i) => (
-                                        <p key={i} className="text-xs text-slate-300 ml-3">• {s}</p>
+                                        <p key={i} className="text-xs ml-3" style={{ color: 'var(--text-secondary, var(--text-primary))' }}>• {s}</p>
                                     ))}
                                 </div>
                             )}
                             {ai.adjusted_completion_date && (
-                                <p className="text-xs text-slate-500">Expected completion: <span className="text-slate-300">{ai.adjusted_completion_date}</span></p>
+                                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Expected completion: <span style={{ color: 'var(--text-primary)' }}>{ai.adjusted_completion_date}</span></p>
                             )}
                         </div>
                     </motion.div>
@@ -326,6 +327,7 @@ function GoalCard({ goal, ai, onDelete, onUpdate }: { goal: Goal; ai?: GoalAI; o
 
 /* ─── Main Page ──────────────────────────────────────── */
 export default function GoalsTracker() {
+    const { isDark } = useTheme();
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -434,7 +436,7 @@ export default function GoalsTracker() {
         return (
             <div className="flex items-center justify-center py-20">
                 <Loader2 size={28} className="animate-spin text-purple-400" />
-                <span className="ml-3 text-slate-400">Loading goals...</span>
+                <span className="ml-3" style={{ color: 'var(--text-muted)' }}>Loading goals...</span>
             </div>
         );
     }
@@ -443,9 +445,14 @@ export default function GoalsTracker() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="font-display font-bold text-2xl text-white">Goal-Based Financial Planner</h1>
-                    <p className="text-slate-500 text-sm mt-1">{goals.length} goal{goals.length !== 1 ? 's' : ''} · AI-powered planning & analysis</p>
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: isDark ? 'rgba(168,85,247,0.12)' : 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                        <Target size={18} className="text-purple-400" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Financial Goals</p>
+                        <h1 className="font-display font-bold text-2xl text-gradient">Goal-Based Planner</h1>
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={() => loadAIPlan(true)} disabled={aiLoading}
@@ -468,12 +475,12 @@ export default function GoalsTracker() {
                     { label: 'Monthly Committed', value: formatFullCurrency(totalContribution), icon: DollarSign, color: '#f59e0b' },
                 ].map((s, i) => (
                     <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                        className="glass-card p-4">
+                        className="card-glow p-4" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                         <div className="flex items-center gap-2 mb-1">
                             <s.icon size={14} style={{ color: s.color }} />
-                            <span className="text-slate-500 text-xs">{s.label}</span>
+                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.label}</span>
                         </div>
-                        <div className="font-bold text-xl text-white">{s.value}</div>
+                        <div className="font-bold text-xl" style={{ color: 'var(--text-primary)' }}>{s.value}</div>
                     </motion.div>
                 ))}
             </div>
@@ -481,16 +488,16 @@ export default function GoalsTracker() {
             {/* AI Overall Summary */}
             {aiPlan?.overall_summary && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    className="glass-card p-4 flex items-start gap-3"
-                    style={{ background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                    className="card-glow p-4 flex items-start gap-3"
+                    style={{ background: isDark ? 'rgba(168,85,247,0.04)' : 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
                     <Sparkles size={16} className="text-purple-400 mt-0.5 flex-shrink-0" />
                     <div>
-                        <p className="text-sm text-slate-300">{aiPlan.overall_summary}</p>
+                        <p className="text-sm" style={{ color: 'var(--text-secondary, var(--text-primary))' }}>{aiPlan.overall_summary}</p>
                         <button onClick={() => setShowExplain(e => !e)} className="text-[10px] text-purple-400 mt-1 hover:underline">
                             {showExplain ? 'Hide Details' : '📖 Explain in Simple Language'}
                         </button>
                         {showExplain && aiPlan.prioritization?.strategy_summary && (
-                            <p className="text-xs text-slate-400 mt-2 p-2 rounded-lg bg-slate-800/40">{aiPlan.prioritization.strategy_summary}</p>
+                            <p className="text-xs mt-2 p-2 rounded-lg" style={{ color: 'var(--text-muted)', background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}>{aiPlan.prioritization.strategy_summary}</p>
                         )}
                     </div>
                 </motion.div>
@@ -499,11 +506,11 @@ export default function GoalsTracker() {
             {/* Error State */}
             {error && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    className="glass-card p-6 text-center"
-                    style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+                    className="card-glow p-6 text-center"
+                    style={{ background: isDark ? 'rgba(239,68,68,0.06)' : 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}>
                     <AlertTriangle size={32} className="mx-auto mb-3 text-red-400" />
-                    <p className="text-white font-medium mb-1">Failed to load goals</p>
-                    <p className="text-slate-500 text-sm mb-4">{error}</p>
+                    <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Failed to load goals</p>
+                    <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>{error}</p>
                     <button onClick={() => { setLoading(true); loadGoals(); }}
                         className="btn-primary text-sm px-4 py-2 inline-flex items-center gap-1.5">
                         <RefreshCw size={14} /> Retry
@@ -514,13 +521,13 @@ export default function GoalsTracker() {
             {/* Empty State */}
             {!error && goals.length === 0 && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    className="glass-card p-10 text-center">
+                    className="card-glow p-10 text-center" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                     <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl"
                         style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
                         🎯
                     </div>
-                    <h3 className="text-white font-semibold text-lg mb-2">No goals yet</h3>
-                    <p className="text-slate-500 text-sm mb-5 max-w-md mx-auto">
+                    <h3 className="font-semibold text-lg mb-2" style={{ color: 'var(--text-primary)' }}>No goals yet</h3>
+                    <p className="text-sm mb-5 max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>
                         Start by creating your first financial goal. Set targets for emergency funds,
                         vacations, investments, or anything you're saving for.
                     </p>
@@ -537,7 +544,7 @@ export default function GoalsTracker() {
                     <AnimatePresence>
                         {goals.map(goal => {
                             const ai = aiPlan?.goals_analysis?.find(a => a.goal_id === goal.id);
-                            return <GoalCard key={goal.id} goal={goal} ai={ai} onDelete={() => handleDelete(goal.id)} onUpdate={handleUpdate} />;
+                            return <GoalCard key={goal.id} goal={goal} ai={ai} onDelete={() => handleDelete(goal.id)} onUpdate={handleUpdate} isDark={isDark} />;
                         })}
                     </AnimatePresence>
                 </div>
@@ -545,7 +552,7 @@ export default function GoalsTracker() {
 
             {/* Tab navigation for AI sections */}
             {(aiPlan || goals.length > 0) && (
-                <div className="flex gap-1 p-1 glass-card w-fit">
+                <div className="flex gap-1 p-1 card-glow w-fit" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                     {[
                         { key: 'overview', label: 'Prioritization', icon: Target },
                         { key: 'invest', label: 'Investments', icon: TrendingUp },
@@ -553,7 +560,8 @@ export default function GoalsTracker() {
                         { key: 'coach', label: 'Coaching', icon: Sparkles },
                     ].map(t => (
                         <button key={t.key} onClick={() => setActiveTab(t.key as any)}
-                            className={`text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all ${activeTab === t.key ? 'bg-purple-500/20 text-purple-400' : 'text-slate-500 hover:text-slate-300'}`}>
+                            className={`text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all ${activeTab === t.key ? 'bg-purple-500/20 text-purple-400' : 'hover:text-slate-300'}`}
+                            style={activeTab !== t.key ? { color: 'var(--text-muted)' } : {}}>
                             <t.icon size={13} /> {t.label}
                         </button>
                     ))}
@@ -562,16 +570,16 @@ export default function GoalsTracker() {
 
             {/* AI Loading */}
             {aiLoading && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-6 text-center">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card-glow p-6 text-center" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                     <Loader2 size={24} className="animate-spin text-purple-400 mx-auto mb-2" />
-                    <p className="text-slate-400 text-sm">AI is analyzing your goals and building a personalized plan...</p>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>AI is analyzing your goals and building a personalized plan...</p>
                 </motion.div>
             )}
 
             {/* ─── TAB: Prioritization ──────────── */}
             {activeTab === 'overview' && aiPlan?.prioritization && !aiLoading && (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5">
-                    <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
+                    <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                         <Activity size={16} className="text-purple-400" /> Multi-Goal Prioritization
                     </h3>
                     {aiPlan.prioritization.over_allocated && (
@@ -591,21 +599,21 @@ export default function GoalsTracker() {
                                         #{rg.rank}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-white font-medium truncate">{g?.title || `Goal #${rg.goal_id}`}</p>
-                                        <p className="text-xs text-slate-500 truncate">{rg.reason}</p>
+                                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{g?.title || `Goal #${rg.goal_id}`}</p>
+                                        <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{rg.reason}</p>
                                     </div>
                                     <div className="text-right flex-shrink-0">
                                         <p className="text-sm font-bold text-purple-400">{formatFullCurrency(rg.recommended_monthly_allocation)}</p>
-                                        <p className="text-[10px] text-slate-500">/month recommended</p>
+                                        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>/month recommended</p>
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
                     {aiPlan.prioritization.total_recommended_monthly > 0 && (
-                        <div className="mt-3 pt-3 border-t border-slate-800/50 flex justify-between text-sm">
-                            <span className="text-slate-400">Total recommended allocation</span>
-                            <span className="text-white font-bold">{formatFullCurrency(aiPlan.prioritization.total_recommended_monthly)}/mo</span>
+                        <div className="mt-3 pt-3 flex justify-between text-sm" style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}>
+                            <span style={{ color: 'var(--text-muted)' }}>Total recommended allocation</span>
+                            <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{formatFullCurrency(aiPlan.prioritization.total_recommended_monthly)}/mo</span>
                         </div>
                     )}
                 </motion.div>
@@ -615,8 +623,8 @@ export default function GoalsTracker() {
             {activeTab === 'invest' && aiPlan?.investment_suggestions && !aiLoading && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                     {aiPlan.investment_suggestions.map((ig) => (
-                        <div key={ig.goal_id} className="glass-card p-5">
-                            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                        <div key={ig.goal_id} className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
+                            <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                                 <TrendingUp size={16} className="text-green-400" /> {ig.goal_title}
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -624,26 +632,26 @@ export default function GoalsTracker() {
                                     <div key={i} className="p-4 rounded-xl"
                                         style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.12)' }}>
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm text-white font-medium">{s.type}</span>
+                                            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{s.type}</span>
                                             <span className={`text-[10px] px-2 py-0.5 rounded-full border ${s.risk_level === 'Low' ? 'bg-green-500/10 text-green-400 border-green-500/20' : s.risk_level === 'Moderate' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 'bg-orange-500/10 text-orange-400 border-orange-500/20'}`}>
                                                 {s.risk_level} Risk
                                             </span>
                                         </div>
-                                        <p className="text-xs text-slate-400 mb-2">{s.why_it_fits}</p>
+                                        <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>{s.why_it_fits}</p>
                                         <div className="grid grid-cols-2 gap-2 text-[10px]">
                                             <div>
-                                                <span className="text-slate-500">Expected Return:</span>
+                                                <span style={{ color: 'var(--text-muted)' }}>Expected Return:</span>
                                                 <p className="text-green-400 font-medium">{s.expected_return_range}</p>
                                             </div>
                                             <div>
-                                                <span className="text-slate-500">Liquidity:</span>
-                                                <p className="text-slate-300">{s.liquidity}</p>
+                                                <span style={{ color: 'var(--text-muted)' }}>Liquidity:</span>
+                                                <p style={{ color: 'var(--text-primary)' }}>{s.liquidity}</p>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
-                            <p className="text-[10px] text-slate-600 mt-3 italic">
+                            <p className="text-[10px] mt-3 italic" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
                                 ⚠️ These are general suggestions for educational purposes only. They are not buy/sell recommendations. Past returns don't guarantee future results.
                             </p>
                         </div>
@@ -655,13 +663,13 @@ export default function GoalsTracker() {
             {activeTab === 'simulate' && !aiLoading && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                     {/* Simulation input */}
-                    <div className="glass-card p-5">
-                        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                    <div className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
+                        <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                             <Zap size={16} className="text-yellow-400" /> Income Change Simulator
                         </h3>
                         <div className="flex gap-3 items-end">
                             <div className="flex-1">
-                                <label className="text-xs text-slate-400 mb-1 block">Income Change (%)</label>
+                                <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Income Change (%)</label>
                                 <input type="number" className="input-field text-sm" placeholder="e.g. -20 or +10"
                                     value={simPct} onChange={e => setSimPct(e.target.value)} />
                             </div>
@@ -673,7 +681,8 @@ export default function GoalsTracker() {
                         <div className="flex gap-2 mt-3">
                             {[-20, -10, 10, 20].map(v => (
                                 <button key={v} onClick={() => { setSimPct(String(v)); }}
-                                    className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${+simPct === v ? 'border-purple-500/30 bg-purple-500/10 text-purple-400' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`}>
+                                    className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${+simPct === v ? 'border-purple-500/30 bg-purple-500/10 text-purple-400' : 'hover:text-slate-300'}`}
+                                    style={+simPct !== v ? { borderColor: isDark ? 'rgba(100,116,139,0.3)' : 'rgba(0,0,0,0.1)', color: 'var(--text-muted)' } : {}}>
                                     {v > 0 ? '+' : ''}{v}%
                                 </button>
                             ))}
@@ -682,15 +691,15 @@ export default function GoalsTracker() {
 
                     {/* Simulation result */}
                     {simResult && (
-                        <div className="glass-card p-5">
-                            <h4 className="text-white font-semibold mb-3">Simulation Result ({simResult.change_pct > 0 ? '+' : ''}{simResult.change_pct}% income change)</h4>
+                        <div className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
+                            <h4 className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Simulation Result ({simResult.change_pct > 0 ? '+' : ''}{simResult.change_pct}% income change)</h4>
                             <div className="grid grid-cols-2 gap-3 mb-4">
                                 <div className="p-3 rounded-xl" style={{ background: 'rgba(168,85,247,0.06)' }}>
-                                    <p className="text-[10px] text-slate-500 mb-1">Original Disposable</p>
-                                    <p className="text-white font-bold">{formatFullCurrency(simResult.original_disposable)}</p>
+                                    <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>Original Disposable</p>
+                                    <p className="font-bold" style={{ color: 'var(--text-primary)' }}>{formatFullCurrency(simResult.original_disposable)}</p>
                                 </div>
                                 <div className="p-3 rounded-xl" style={{ background: simResult.change_pct < 0 ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.06)' }}>
-                                    <p className="text-[10px] text-slate-500 mb-1">New Disposable</p>
+                                    <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>New Disposable</p>
                                     <p className={`font-bold ${simResult.change_pct < 0 ? 'text-red-400' : 'text-green-400'}`}>
                                         {formatFullCurrency(simResult.new_disposable)}
                                     </p>
@@ -701,8 +710,8 @@ export default function GoalsTracker() {
                                     <div key={gi.goal_id} className="flex items-center justify-between p-3 rounded-xl"
                                         style={{ background: gi.needs_adjustment ? 'rgba(239,68,68,0.06)' : 'rgba(168,85,247,0.04)', border: `1px solid ${gi.needs_adjustment ? 'rgba(239,68,68,0.12)' : 'rgba(168,85,247,0.08)'}` }}>
                                         <div>
-                                            <p className="text-sm text-white">{gi.title}</p>
-                                            <p className="text-xs text-slate-500">
+                                            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{gi.title}</p>
+                                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                                                 {formatFullCurrency(gi.original_contribution)} → {formatFullCurrency(gi.adjusted_contribution)}/mo
                                             </p>
                                         </div>
@@ -721,8 +730,8 @@ export default function GoalsTracker() {
 
                     {/* Pre-built AI simulations */}
                     {aiPlan?.income_simulation && (
-                        <div className="glass-card p-5">
-                            <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                        <div className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
+                            <h4 className="font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                                 <BarChart3 size={14} className="text-purple-400" /> AI Pre-Computed Scenarios
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -735,22 +744,22 @@ export default function GoalsTracker() {
                                         style={{ background: `${sc.color}08`, border: `1px solid ${sc.color}20` }}>
                                         <div className="flex items-center gap-1.5 mb-2">
                                             <sc.icon size={13} style={{ color: sc.color }} />
-                                            <span className="text-xs text-white font-medium">{sc.label}</span>
+                                            <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{sc.label}</span>
                                         </div>
-                                        <p className="text-[10px] text-slate-400 mb-1">
-                                            New disposable: <span className="text-white">{formatFullCurrency(sc.data?.new_disposable || 0)}</span>
+                                        <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>
+                                            New disposable: <span style={{ color: 'var(--text-primary)' }}>{formatFullCurrency(sc.data?.new_disposable || 0)}</span>
                                         </p>
                                         {'delay_added_months' in (sc.data || {}) && (
-                                            <p className="text-[10px] text-slate-400">
+                                            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                                                 Delay: <span className="font-medium" style={{ color: sc.color }}>+{(sc.data as any).delay_added_months} months</span>
                                             </p>
                                         )}
                                         {'time_saved_months' in (sc.data || {}) && (
-                                            <p className="text-[10px] text-slate-400">
+                                            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                                                 Time saved: <span className="text-green-400 font-medium">{(sc.data as any).time_saved_months} months</span>
                                             </p>
                                         )}
-                                        <p className="text-[10px] text-slate-500 mt-1">
+                                        <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
                                             {(sc.data as any)?.adjustment_needed || (sc.data as any)?.benefit || ''}
                                         </p>
                                     </div>
@@ -764,8 +773,8 @@ export default function GoalsTracker() {
             {/* ─── TAB: Behavioral Coaching ──────────── */}
             {activeTab === 'coach' && aiPlan?.coaching && !aiLoading && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                    <div className="glass-card p-5">
-                        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                    <div className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
+                        <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                             <Sparkles size={16} className="text-purple-400" /> AI Behavioral Coach
                         </h3>
                         <div className="space-y-3">
@@ -773,7 +782,7 @@ export default function GoalsTracker() {
                                 <div key={i} className="p-3 rounded-xl flex items-start gap-3"
                                     style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.12)' }}>
                                     <Lightbulb size={14} className="text-purple-400 mt-0.5 flex-shrink-0" />
-                                    <p className="text-sm text-slate-300">{msg}</p>
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary, var(--text-primary))' }}>{msg}</p>
                                 </div>
                             ))}
                         </div>
@@ -781,30 +790,30 @@ export default function GoalsTracker() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {aiPlan.coaching.weekly_challenge && (
-                            <div className="glass-card p-4">
+                            <div className="card-glow p-4" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                                 <div className="flex items-center gap-2 mb-2">
                                     <Shield size={14} className="text-yellow-400" />
-                                    <span className="text-xs text-slate-400 uppercase tracking-wide">Weekly Challenge</span>
+                                    <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Weekly Challenge</span>
                                 </div>
-                                <p className="text-sm text-white">{aiPlan.coaching.weekly_challenge}</p>
+                                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{aiPlan.coaching.weekly_challenge}</p>
                             </div>
                         )}
                         {aiPlan.coaching.automatic_transfer_suggestion && (
-                            <div className="glass-card p-4">
+                            <div className="card-glow p-4" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                                 <div className="flex items-center gap-2 mb-2">
                                     <DollarSign size={14} className="text-green-400" />
-                                    <span className="text-xs text-slate-400 uppercase tracking-wide">Auto-Transfer</span>
+                                    <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Auto-Transfer</span>
                                 </div>
-                                <p className="text-sm text-white">{aiPlan.coaching.automatic_transfer_suggestion}</p>
+                                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{aiPlan.coaching.automatic_transfer_suggestion}</p>
                             </div>
                         )}
                         {aiPlan.coaching.habit_tip && (
-                            <div className="glass-card p-4">
+                            <div className="card-glow p-4" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                                 <div className="flex items-center gap-2 mb-2">
                                     <Activity size={14} className="text-blue-400" />
-                                    <span className="text-xs text-slate-400 uppercase tracking-wide">Habit Tip</span>
+                                    <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Habit Tip</span>
                                 </div>
-                                <p className="text-sm text-white">{aiPlan.coaching.habit_tip}</p>
+                                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{aiPlan.coaching.habit_tip}</p>
                             </div>
                         )}
                     </div>
@@ -820,13 +829,14 @@ export default function GoalsTracker() {
                             className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
                         <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
-                            <div className="glass-card p-6 w-full max-w-md pointer-events-auto"
+                            <div className="card-glow p-6 w-full max-w-md pointer-events-auto"
+                                style={{ background: isDark ? 'rgba(15,23,42,0.97)' : 'rgba(255,255,255,0.97)' }}
                                 onClick={e => e.stopPropagation()}>
                                 <div className="flex items-center justify-between mb-5">
-                                    <h3 className="text-white font-semibold text-lg flex items-center gap-2">
+                                    <h3 className="font-semibold text-lg flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                                         <Target size={18} className="text-purple-400" /> New Financial Goal
                                     </h3>
-                                    <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-white"><X size={20} /></button>
+                                    <button onClick={() => setShowModal(false)} className="hover:text-white" style={{ color: 'var(--text-muted)' }}><X size={20} /></button>
                                 </div>
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-3 gap-3">

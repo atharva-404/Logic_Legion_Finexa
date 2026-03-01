@@ -4,6 +4,7 @@ import { Sliders, TrendingDown, Sparkles, Loader2, AlertTriangle, IndianRupee } 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { TransactionsAPI, AIAPI } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const fmt = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 
@@ -28,11 +29,11 @@ const catIcon = (name: string) =>
     name === 'Restaurant' || name === 'Coffee' ? '☕' :
     name === 'Personal Care' ? '💇' : '💸';
 
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload, isDark }: any) => {
     if (!active || !payload?.length) return null;
     return (
-        <div className="glass-card p-3 text-xs">
-            <p className="text-white font-medium">{payload[0]?.payload?.name}</p>
+        <div className="card-glow p-3 text-xs" style={{ background: isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.97)', border: '1px solid ' + (isDark ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.15)') }}>
+            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{payload[0]?.payload?.name}</p>
             <p className="text-purple-400">{fmt(payload[0]?.value || 0)}</p>
         </div>
     );
@@ -40,6 +41,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 export default function BudgetOptimizer() {
     const { user } = useAuth();
+    const { isDark } = useTheme();
     const [monthlyIncome, setMonthlyIncome] = useState(0);
     const [totalExpense, setTotalExpense] = useState(0);
     const [categories, setCategories] = useState<CategoryData[]>([]);
@@ -147,7 +149,7 @@ export default function BudgetOptimizer() {
         return (
             <div className="flex items-center justify-center py-20">
                 <Loader2 size={28} className="animate-spin text-purple-400" />
-                <span className="ml-3 text-slate-400">Loading budget data...</span>
+                <span className="ml-3" style={{ color: 'var(--text-muted)' }}>Loading budget data...</span>
             </div>
         );
     }
@@ -156,13 +158,13 @@ export default function BudgetOptimizer() {
         return (
             <div className="space-y-6">
                 <div>
-                    <h1 className="font-display font-bold text-2xl text-white">Budget Optimizer</h1>
-                    <p className="text-slate-500 text-sm mt-1">No spending data to optimize</p>
+                    <h1 className="font-display font-bold text-2xl" style={{ color: 'var(--text-primary)' }}>Budget Optimizer</h1>
+                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>No spending data to optimize</p>
                 </div>
                 <div className="text-center py-12">
-                    <AlertTriangle size={48} className="mx-auto mb-3 text-slate-600" />
-                    <p className="text-slate-400 font-medium">No expenses found</p>
-                    <p className="text-slate-500 text-sm mt-1">Add transactions to start optimizing your budget.</p>
+                    <AlertTriangle size={48} className="mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+                    <p className="font-medium" style={{ color: 'var(--text-muted)' }}>No expenses found</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Add transactions to start optimizing your budget.</p>
                 </div>
             </div>
         );
@@ -170,16 +172,21 @@ export default function BudgetOptimizer() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="font-display font-bold text-2xl text-white">Budget Optimizer</h1>
-                <p className="text-slate-500 text-sm mt-1">See where your money goes and find ways to save</p>
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: isDark ? 'rgba(168,85,247,0.12)' : 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                    <Sliders size={18} className="text-purple-400" />
+                </div>
+                <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Budget Analysis</p>
+                    <h1 className="font-display font-bold text-2xl text-gradient">Budget Optimizer</h1>
+                </div>
             </div>
 
             {/* 50/30/20 Rule Analysis */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                className="glass-card p-5">
-                <h3 className="text-white font-semibold mb-1">50/30/20 Rule</h3>
-                <p className="text-slate-500 text-xs mb-4">How your spending compares to the ideal split</p>
+                className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
+                <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>50/30/20 Rule</h3>
+                <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>How your spending compares to the ideal split</p>
                 <div className="grid grid-cols-3 gap-4 mb-5">
                     {[
                         { label: 'Needs (50%)', actual: needsTotal, ideal: monthlyIncome * 0.5, color: '#a855f7' },
@@ -192,8 +199,8 @@ export default function BudgetOptimizer() {
                         return (
                             <div key={r.label} className="text-center p-3 rounded-xl"
                                 style={{ background: `${r.color}10`, border: `1px solid ${r.color}20` }}>
-                                <div className="text-xs text-slate-500 mb-1">{r.label}</div>
-                                <div className="font-bold text-white text-base">{fmt(r.actual)}</div>
+                                <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{r.label}</div>
+                                <div className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>{fmt(r.actual)}</div>
                                 <div className="text-xs mt-1" style={{ color: isGood ? '#10b981' : '#ef4444' }}>
                                     {Math.abs(diff) < 50 ? '✅ On target' :
                                         `${isGood ? '✅' : '⚠️'} ${fmt(Math.abs(diff))} ${isSavings ? (diff > 0 ? 'extra' : 'short') : (diff > 0 ? 'over' : 'under')}`}
@@ -206,7 +213,7 @@ export default function BudgetOptimizer() {
                     <BarChart data={actual.map((a, i) => ({ ...a, ideal: ideal[i].value }))} barCategoryGap={30}>
                         <XAxis dataKey="name" stroke="#475569" tick={{ fontSize: 11 }} />
                         <YAxis stroke="#475569" tick={{ fontSize: 10 }} tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} />
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip content={<CustomTooltip isDark={isDark} />} />
                         <Bar dataKey="ideal" name="Ideal" fill="rgba(168,85,247,0.2)" radius={[4, 4, 0, 0]} />
                         <Bar dataKey="value" name="Actual" radius={[4, 4, 0, 0]}>
                             {actual.map(a => <Cell key={a.name} fill={a.color} />)}
@@ -217,58 +224,59 @@ export default function BudgetOptimizer() {
 
             {/* What-If Budget Simulator */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                className="glass-card p-6">
+                className="card-glow p-6" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                 <div className="flex items-center gap-2 mb-1">
                     <Sliders size={18} className="text-purple-400" />
-                    <h3 className="text-white font-semibold">What-If Budget Simulator</h3>
+                    <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>What-If Budget Simulator</h3>
                 </div>
-                <p className="text-slate-500 text-xs mb-5">Pick a category, reduce spending, see how much you save each month</p>
+                <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>Pick a category, reduce spending, see how much you save each month</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="text-slate-400 text-sm mb-3 block">Choose a category to reduce:</label>
+                        <label className="text-sm mb-3 block" style={{ color: 'var(--text-muted)' }}>Choose a category to reduce:</label>
                         <div className="flex flex-wrap gap-2">
                             {categories.map(e => (
                                 <button key={e.name} onClick={() => { setSimCategory(e.name); setReduceAmount(Math.min(reduceAmount, Math.round(e.amount))); }}
-                                    className={`px-3 py-2 rounded-xl text-sm transition-all ${simCategory === e.name ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300' : 'bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:border-purple-500/30'}`}>
+                                    className={`px-3 py-2 rounded-xl text-sm transition-all ${simCategory === e.name ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300' : 'border hover:border-purple-500/30'}`}
+                                    style={simCategory !== e.name ? { background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(100,116,139,0.3)' : 'rgba(0,0,0,0.08)', color: 'var(--text-muted)' } : {}}>
                                     {e.icon} {e.name}
                                 </button>
                             ))}
                         </div>
 
                         <div className="mt-5">
-                            <label className="text-slate-400 text-sm mb-2 block">
-                                Reduce by: <span className="text-white font-semibold">{fmt(reduceAmount)}/mo</span>
-                                {selectedCat && <span className="text-slate-600 ml-1">(current: {fmt(selectedCat.amount)})</span>}
+                            <label className="text-sm mb-2 block" style={{ color: 'var(--text-muted)' }}>
+                                Reduce by: <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{fmt(reduceAmount)}/mo</span>
+                                {selectedCat && <span className="ml-1" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>(current: {fmt(selectedCat.amount)})</span>}
                             </label>
                             <input type="range" min={100} max={sliderMax} step={100} value={Math.min(reduceAmount, sliderMax)}
                                 onChange={e => setReduceAmount(+e.target.value)}
                                 className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                                 style={{ background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${((Math.min(reduceAmount, sliderMax) - 100) / (sliderMax - 100)) * 100}%, rgba(168,85,247,0.2) ${((Math.min(reduceAmount, sliderMax) - 100) / (sliderMax - 100)) * 100}%, rgba(168,85,247,0.2) 100%)` }} />
-                            <div className="flex justify-between text-xs text-slate-600 mt-1">
+                            <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
                                 <span>₹100</span><span>{fmt(sliderMax)}</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-3">
-                        <p className="text-slate-400 text-sm">What you'd save:</p>
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>What you'd save:</p>
                         <motion.div key={reduceAmount} initial={{ scale: 0.95 }} animate={{ scale: 1 }}
                             className="p-5 rounded-xl text-center"
                             style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
                             <TrendingDown size={24} className="text-green-400 mx-auto mb-2" />
                             <div className="text-3xl font-bold text-green-400 mb-1">{fmt(reduceAmount)}</div>
-                            <div className="text-slate-400 text-sm">saved per month</div>
-                            <div className="text-slate-500 text-xs mt-1">= {fmt(reduceAmount * 12)} per year</div>
+                            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>saved per month</div>
+                            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>= {fmt(reduceAmount * 12)} per year</div>
                         </motion.div>
                         <div className="grid grid-cols-2 gap-2">
                             <div className="p-3 rounded-xl text-center" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.15)' }}>
                                 <div className="text-purple-400 font-semibold">{fmt(Math.max(0, savings))}</div>
-                                <div className="text-slate-500 text-xs">Current savings</div>
+                                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Current savings</div>
                             </div>
                             <div className="p-3 rounded-xl text-center" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
                                 <div className="text-green-400 font-semibold">{fmt(Math.max(0, savings) + reduceAmount)}</div>
-                                <div className="text-slate-500 text-xs">New monthly savings</div>
+                                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>New monthly savings</div>
                             </div>
                         </div>
                     </div>
@@ -277,11 +285,11 @@ export default function BudgetOptimizer() {
 
             {/* AI Budget Recommendations */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                className="glass-card p-5">
+                className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                         <Sparkles size={16} className="text-purple-400" />
-                        <h3 className="text-white font-semibold">AI Budget Recommendations</h3>
+                        <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>AI Budget Recommendations</h3>
                     </div>
                     {aiTips.length === 0 && (
                         <button onClick={loadAiTips} disabled={aiLoading}
@@ -300,7 +308,7 @@ export default function BudgetOptimizer() {
                                 style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.1)' }}>
                                 <span className="text-xl flex-shrink-0">💡</span>
                                 <div className="flex-1">
-                                    <p className="text-white text-sm font-medium mb-0.5">{tip.tip}</p>
+                                    <p className="text-sm font-medium mb-0.5" style={{ color: 'var(--text-primary)' }}>{tip.tip}</p>
                                     <div className="flex items-center gap-3 mt-1">
                                         {tip.category && tip.category !== 'System' && (
                                             <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400">{tip.category}</span>
@@ -315,18 +323,19 @@ export default function BudgetOptimizer() {
                             </div>
                         ))}
                         <button onClick={loadAiTips} disabled={aiLoading}
-                            className="w-full mt-2 px-4 py-2 rounded-lg text-sm bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:border-purple-500/30 transition-all disabled:opacity-50">
+                            className="w-full mt-2 px-4 py-2 rounded-lg text-sm border hover:border-purple-500/30 transition-all disabled:opacity-50"
+                            style={{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(100,116,139,0.3)' : 'rgba(0,0,0,0.08)', color: 'var(--text-muted)' }}>
                             {aiLoading ? <span className="flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" /> Refreshing...</span> : '🔄 Refresh Advice'}
                         </button>
                     </div>
                 ) : !aiLoading ? (
-                    <p className="text-slate-500 text-sm text-center py-6">
+                    <p className="text-sm text-center py-6" style={{ color: 'var(--text-muted)' }}>
                         Click "Get AI Advice" to get personalized budget tips based on your spending
                     </p>
                 ) : (
                     <div className="flex items-center justify-center py-8">
                         <Loader2 size={20} className="animate-spin text-purple-400" />
-                        <span className="ml-2 text-slate-400 text-sm">AI is analyzing your spending...</span>
+                        <span className="ml-2 text-sm" style={{ color: 'var(--text-muted)' }}>AI is analyzing your spending...</span>
                     </div>
                 )}
             </motion.div>

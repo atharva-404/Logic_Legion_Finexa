@@ -100,3 +100,47 @@ class Notification(models.Model):
     
     def __str__(self):
         return f"{self.title} - {self.user.email}"
+
+
+CURRENCY_CHOICES = [
+    ('INR', 'Indian Rupee'),
+    ('USD', 'US Dollar'),
+    ('EUR', 'Euro'),
+    ('GBP', 'British Pound'),
+]
+
+LANGUAGE_CHOICES = [
+    ('en', 'English'),
+    ('hi', 'Hindi'),
+    ('ta', 'Tamil'),
+]
+
+
+class UserSettings(models.Model):
+    """
+    Persisted user preferences (notifications, privacy, appearance).
+    One-to-one with User; auto-created on first access.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='settings')
+
+    # Appearance
+    currency = models.CharField(max_length=5, choices=CURRENCY_CHOICES, default='INR')
+    language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES, default='en')
+    dark_mode = models.BooleanField(default=True)
+
+    # Notifications
+    budget_alerts = models.BooleanField(default=True)
+    goal_reminders = models.BooleanField(default=True)
+    weekly_report = models.BooleanField(default=True)
+    ai_insights = models.BooleanField(default=False)
+    market_updates = models.BooleanField(default=False)
+
+    # Privacy
+    show_balance = models.BooleanField(default=True)
+    analytics_sharing = models.BooleanField(default=False)
+    crash_reports = models.BooleanField(default=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Settings for {self.user.email}"

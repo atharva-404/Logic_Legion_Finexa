@@ -222,7 +222,37 @@ export const GoalsAPI = {
 // ─── Gamification API ───────────────────────────────────────────
 export const GamificationAPI = {
     getData: () =>
-        apiFetch<{ badges: any[]; total_points: number; level: number }>('/api/gamification/'),
+        apiFetch<{ badges: any[]; total_points: number; level: number }>('/api/gamification/summary/'),
+
+    // Challenges
+    getChallenges: () =>
+        apiFetch<{ count: number; results: any[] }>('/api/gamification/my-challenges/'),
+
+    toggleChallenge: (id: number) =>
+        apiFetch<any>(`/api/gamification/my-challenges/${id}/toggle/`, { method: 'POST' }),
+
+    // Badges
+    getBadges: () => apiFetch<any[]>('/api/gamification/badges/'),
+    getMyBadges: () => apiFetch<any[]>('/api/gamification/my-badges/'),
+};
+
+// ─── Settings API ───────────────────────────────────────────────
+export const SettingsAPI = {
+    get: () => apiFetch<any>('/api/users/settings/'),
+
+    update: (data: Record<string, any>) =>
+        apiFetch<any>('/api/users/settings/', {
+            method: 'PATCH', body: JSON.stringify(data),
+        }),
+
+    getFullProfile: () => apiFetch<any>('/api/users/profile/full/'),
+
+    changePassword: (data: { old_password: string; new_password: string; new_password_confirm: string }) =>
+        apiFetch<any>('/api/users/change-password/', {
+            method: 'POST', body: JSON.stringify(data),
+        }),
+
+    exportData: () => apiFetch<any>('/api/users/export-data/', { method: 'POST' }),
 };
 
 // ─── AI API ─────────────────────────────────────────────────────

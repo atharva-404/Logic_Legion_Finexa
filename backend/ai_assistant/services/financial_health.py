@@ -1,410 +1,428 @@
 # ai_assistant/services/financial_health.py
 """
 Financial Health Score Calculator
-Calculates 0-100 financial health score based on 5 factors
+Calculates 0-100 financial health score based on 5 factors.
+Uses the Transaction model (income/expense) and User.income (profile) as primary data sources.
 """
 from decimal import Decimal
-from datetime import datetime, timedelta
-from django.db.models import Sum, Avg, Count
+from datetime import datetime, timedelta, date as date_type
+from django.db.models import Sum, Avg, Count, StdDev
 from django.utils import timezone
 from ..models import WalletTransaction, Wallet, FinancialHealthScore, ScoreFactorDetail, Loan
+from transactions.models import Transaction
 
 
 class FinancialHealthCalculator:
     """
-    Calculates financial health scores based on user's financial data
+    Calculates financial health scores based on the user's real transaction data.
     """
-    
+
     def __init__(self, user):
         self.user = user
-        
+
+    # ── helpers ────────────────────────────────────────────────────
+    @staticmethod
+    def _to_aware_datetime(d):
+        """Convert a date or naive datetime to a timezone-aware datetime."""
+        if isinstance(d, datetime):
+            if timezone.is_naive(d):
+                return timezone.make_aware(d)
+            return d
+        # It's a date object – convert to midnight aware datetime
+        return timezone.make_aware(datetime(d.year, d.month, d.day))
+
+    def _month_range(self, month_date):
+        """Return (start, end) as timezone-aware datetimes for the given month."""
+        if isinstance(month_date, datetime):
+            base = month_date.date() if hasattr(month_date, 'date') else month_date
+        else:
+            base = month_date
+        start = base.replace(day=1)
+        if start.month == 12:
+            end = start.replace(year=start.year + 1, month=1, day=1)
+        else:
+            end = start.replace(month=start.month + 1, day=1)
+        return self._to_aware_datetime(start), self._to_aware_datetime(end)
+
+    def _get_profile_income(self):
+        """Monthly income set in the user profile (onboarding)."""
+        return float(self.user.income or 0)
+
+    def _get_transactions(self, start, end, tx_type=None):
+        """Return queryset of Transaction objects for user in date range."""
+        qs = Transaction.objects.filter(user=self.user, date__gte=start, date__lt=end)
+        if tx_type:
+            qs = qs.filter(type=tx_type)
+        return qs
+
+    def _total_income(self, start, end):
+        """Best-effort income: max of transaction-based income and profile income."""
+        tx_income = self._get_transactions(start, end, 'income').aggregate(
+            total=Sum('amount'))['total'] or Decimal('0')
+        return max(float(tx_income), self._get_profile_income())
+
+    def _total_expenses(self, start, end):
+        return float(
+            self._get_transactions(start, end, 'expense').aggregate(
+                total=Sum('amount'))['total'] or Decimal('0'))
+
+    # ── 1. Spending Discipline (0-20) ─────────────────────────────
     def calculate_spending_discipline(self, month_date):
         """
-        Calculate spending discipline score (0-20 points)
-        
-        Factors:
-        - Consistency in spending (8 points)
-        - Ratio of planned vs impulse purchases (6 points)
-        - Budget adherence (6 points)
-        
-        Returns: (score, metrics, explanation)
+        Sub-scores:
+          - Budget adherence (0-8): expense / income ratio
+          - Spending consistency (0-6): low std-dev across expense txns
+          - Category diversity (0-6): spending spread across categories
         """
         try:
-            # Get transactions for the month
-            start_date = month_date.replace(day=1)
-            if month_date.month == 12:
-                end_date = month_date.replace(year=month_date.year + 1, month=1, day=1)
+            start, end = self._month_range(month_date)
+            income = self._total_income(start, end)
+            expenses = self._total_expenses(start, end)
+            expense_txns = self._get_transactions(start, end, 'expense')
+            tx_count = expense_txns.count()
+
+            # --- budget adherence (0-8) ---
+            if income > 0:
+                spend_ratio = expenses / income
+                if spend_ratio <= 0.50:
+                    budget_score = 8
+                elif spend_ratio <= 0.70:
+                    budget_score = 7
+                elif spend_ratio <= 0.85:
+                    budget_score = 5
+                elif spend_ratio <= 1.0:
+                    budget_score = 3
+                else:
+                    budget_score = 1
             else:
-                end_date = month_date.replace(month=month_date.month + 1, day=1)
-            
-            wallet = Wallet.objects.filter(user=self.user).first()
-            if not wallet:
-                return 10, {}, "No wallet data available. Default score assigned."
-            
-            transactions = WalletTransaction.objects.filter(
-                wallet=wallet,
-                timestamp__gte=start_date,
-                timestamp__lt=end_date,
-                transaction_type='WITHDRAW'
-            )
-            
-            total_withdrawals = transactions.aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            transaction_count = transactions.count()
-            
-            # Calculate consistency score (0-8)
-            # Lower variance = better consistency
-            if transaction_count > 0:
-                avg_transaction = total_withdrawals / transaction_count
-                consistency_score = min(8, int(8 * (1 - min(1, float(avg_transaction) / 1000))))
+                budget_score = 4  # neutral – no income data
+
+            # --- spending consistency (0-6) ---
+            if tx_count >= 3:
+                stddev = expense_txns.aggregate(sd=StdDev('amount'))['sd'] or 0
+                avg_amt = float(expense_txns.aggregate(a=Avg('amount'))['a'] or 1)
+                cv = float(stddev) / avg_amt if avg_amt > 0 else 1
+                if cv <= 0.3:
+                    consistency_score = 6
+                elif cv <= 0.6:
+                    consistency_score = 4
+                elif cv <= 1.0:
+                    consistency_score = 2
+                else:
+                    consistency_score = 1
             else:
-                consistency_score = 8  # No spending = perfect consistency
-            
-            # Calculate impulse purchase ratio (0-6)
-            # For now, assume smaller transactions are more impulsive
-            small_transactions = transactions.filter(amount__lt=100).count()
-            impulse_ratio = small_transactions / max(transaction_count, 1)
-            impulse_score = int(6 * (1 - impulse_ratio))
-            
-            # Budget adherence (0-6)
-            # Simple heuristic: lower total spending = better adherence
-            budget_score = min(6, int(6 * (1 - min(1, float(total_withdrawals) / 10000))))
-            
-            total_score = max(0, min(20, consistency_score + impulse_score + budget_score))
-            
+                consistency_score = 3  # too few txns
+
+            # --- category diversity (0-6) ---
+            cats = expense_txns.values('category').annotate(total=Sum('amount'))
+            num_cats = cats.count()
+            if num_cats >= 5:
+                diversity_score = 6
+            elif num_cats >= 3:
+                diversity_score = 4
+            elif num_cats >= 1:
+                diversity_score = 2
+            else:
+                diversity_score = 0
+
+            total = max(0, min(20, budget_score + consistency_score + diversity_score))
             metrics = {
-                'total_withdrawals': float(total_withdrawals),
-                'transaction_count': transaction_count,
-                'avg_transaction': float(avg_transaction) if transaction_count > 0 else 0,
+                'income': round(income, 2),
+                'expenses': round(expenses, 2),
+                'spend_ratio': round(expenses / income, 3) if income else 0,
+                'tx_count': tx_count,
+                'budget_score': budget_score,
                 'consistency_score': consistency_score,
-                'impulse_score': impulse_score,
-                'budget_score': budget_score
+                'diversity_score': diversity_score,
             }
-            
-            explanation = f"Spending discipline: {total_score}/20. " \
-                         f"Based on {transaction_count} transactions totaling ₹{total_withdrawals}."
-            
-            return total_score, metrics, explanation
-            
+            expl = (f"Spending Discipline: {total}/20 — "
+                    f"Spend ratio {metrics['spend_ratio']:.0%}, "
+                    f"{tx_count} transactions across {num_cats} categories.")
+            return total, metrics, expl
         except Exception as e:
-            return 10, {}, f"Error calculating spending discipline: {str(e)}"
-    
+            return 10, {}, f"Error: {e}"
+
+    # ── 2. Savings Ratio (0-20) ───────────────────────────────────
     def calculate_savings_ratio(self, month_date):
         """
-        Calculate savings ratio score (0-20 points)
-        
-        Factors:
-        - Savings rate (12 points) - target: 20%+
-        - Emergency fund adequacy (8 points)
-        
-        Returns: (score, metrics, explanation)
+        Sub-scores:
+          - Savings rate (0-12): (income - expenses) / income
+          - Emergency fund adequacy (0-8): savings / monthly_expenses >= 3 months
         """
         try:
-            wallet = Wallet.objects.filter(user=self.user).first()
-            if not wallet:
-                return 10, {}, "No wallet data available."
-            
-            # Get income (deposits) and expenses (withdrawals) for the month
-            start_date = month_date.replace(day=1)
-            if month_date.month == 12:
-                end_date = month_date.replace(year=month_date.year + 1, month=1, day=1)
-            else:
-                end_date = month_date.replace(month=month_date.month + 1, day=1)
-            
-            income = WalletTransaction.objects.filter(
-                wallet=wallet,
-                timestamp__gte=start_date,
-                timestamp__lt=end_date,
-                transaction_type='ADD'
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            
-            expenses = WalletTransaction.objects.filter(
-                wallet=wallet,
-                timestamp__gte=start_date,
-                timestamp__lt=end_date,
-                transaction_type='WITHDRAW'
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            
-            # Calculate savings rate
+            start, end = self._month_range(month_date)
+            income = self._total_income(start, end)
+            expenses = self._total_expenses(start, end)
+            savings = income - expenses
+
+            # --- savings rate (0-12) ---
             if income > 0:
-                savings = income - expenses
-                savings_rate = float(savings / income)
-                # Target: 20% savings rate = 12 points
-                savings_score = max(0, min(12, int(12 * (savings_rate / 0.20))))
+                rate = savings / income
+                if rate >= 0.30:
+                    savings_score = 12
+                elif rate >= 0.20:
+                    savings_score = 10
+                elif rate >= 0.10:
+                    savings_score = 7
+                elif rate >= 0.0:
+                    savings_score = 4
+                else:
+                    savings_score = 0
             else:
-                savings_rate = 0
                 savings_score = 0
-            
-            # Emergency fund adequacy (0-8)
-            # Current balance as months of expenses
-            monthly_expenses = float(expenses) if expenses > 0 else 1
-            months_covered = float(wallet.balance) / monthly_expenses if monthly_expenses > 0 else 0
-            # Target: 3+ months = 8 points
-            emergency_score = min(8, int(8 * (months_covered / 3)))
-            
-            total_score = max(0, min(20, savings_score + emergency_score))
-            
+
+            # --- emergency fund (0-8) ---
+            # Use wallet balance as proxy for liquid emergency fund
+            wallet = Wallet.objects.filter(user=self.user).first()
+            balance = float(wallet.balance) if wallet else 0
+            monthly_exp = expenses if expenses > 0 else 1
+            months_covered = balance / monthly_exp
+
+            if months_covered >= 6:
+                emerg_score = 8
+            elif months_covered >= 3:
+                emerg_score = 6
+            elif months_covered >= 1:
+                emerg_score = 3
+            else:
+                emerg_score = 1
+
+            total = max(0, min(20, savings_score + emerg_score))
             metrics = {
-                'income': float(income),
-                'expenses': float(expenses),
-                'savings': float(income - expenses),
-                'savings_rate': savings_rate,
-                'current_balance': float(wallet.balance),
-                'months_covered': months_covered,
-                'savings_score': savings_score,
-                'emergency_score': emergency_score
+                'income': round(income, 2),
+                'expenses': round(expenses, 2),
+                'savings': round(savings, 2),
+                'savings_rate': round(savings / income, 3) if income else 0,
+                'wallet_balance': balance,
+                'months_covered': round(months_covered, 1),
             }
-            
-            explanation = f"Savings ratio: {total_score}/20. " \
-                         f"Savings rate: {savings_rate*100:.1f}%, Emergency fund: {months_covered:.1f} months."
-            
-            return total_score, metrics, explanation
-            
+            expl = (f"Savings Ratio: {total}/20 — "
+                    f"Rate {metrics['savings_rate']:.0%}, "
+                    f"Emergency fund covers {months_covered:.1f} months.")
+            return total, metrics, expl
         except Exception as e:
-            return 10, {}, f"Error calculating savings ratio: {str(e)}"
-    
+            return 10, {}, f"Error: {e}"
+
+    # ── 3. Credit Utilization / Discipline (0-20) ─────────────────
     def calculate_credit_utilization(self, month_date):
-        """
-        Calculate credit behavior score (0-20 points)
-        Uses 'Missed EMIs' and 'Wallet Overdrafts' as proxy for credit discipline.
-        """
+        """Based on missed EMIs from active loans."""
         try:
-            # 1. Check Missed EMIs
             loans = Loan.objects.filter(user=self.user, status='ACTIVE')
             total_missed = loans.aggregate(total=Sum('missed_emis'))['total'] or 0
-            
-            # 2. Score Calculation
-            # Start with perfect score
-            score = 20
-            
-            # Deduct 5 points per missed EMI
-            penalty = total_missed * 5
-            score = max(0, score - penalty)
-            
-            metrics = {
-                'missed_emis': total_missed,
-                'penalty_applied': penalty,
-                'base_score': 20
-            }
-            
+            score = max(0, 20 - total_missed * 5)
+            metrics = {'missed_emis': total_missed, 'active_loans': loans.count()}
             if total_missed > 0:
-                explanation = f"Credit Discipline: {score}/20. Penalty applied for {total_missed} missed loan payments."
+                expl = f"Credit Discipline: {score}/20 — {total_missed} missed payments."
             else:
-                explanation = "Credit Discipline: 20/20. No missed payments detected."
-                
-            return score, metrics, explanation
-            
+                expl = f"Credit Discipline: {score}/20 — No missed payments."
+            return score, metrics, expl
         except Exception as e:
-             return 15, {}, "Default score due to error."
-    
+            return 15, {}, f"Error: {e}"
+
+    # ── 4. Loan Burden / DTI (0-20) ───────────────────────────────
     def calculate_loan_burden(self, month_date):
-        """
-        Calculate loan burden score (0-20 points)
-        Based on Debt-to-Income (DTI) ratio from active loans.
-        """
+        """Debt-to-Income ratio from active loans vs real income."""
         try:
-            # 1. Calculate Total Monthly EMI
             loans = Loan.objects.filter(user=self.user, status='ACTIVE')
-            total_emi = loans.aggregate(total=Sum('monthly_emi'))['total'] or Decimal('0')
-            total_emi = float(total_emi)
+            total_emi = float(loans.aggregate(total=Sum('monthly_emi'))['total'] or Decimal('0'))
 
-            # 2. Calculate Monthly Income (Avg of last 3 months to be stable)
-            end_date = month_date
-            start_date = end_date - timedelta(days=90)
-            
-            wallet = Wallet.objects.filter(user=self.user).first()
-            if not wallet:
-                return 15, {}, "No wallet data for income verification."
+            # Use 3-month average income from transactions, fallback to profile income
+            end_aware = self._to_aware_datetime(month_date)
+            start_3m = end_aware - timedelta(days=90)
+            tx_income_3m = float(
+                Transaction.objects.filter(
+                    user=self.user, type='income',
+                    date__gte=start_3m, date__lt=end_aware
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0'))
+            profile_income = self._get_profile_income()
+            avg_monthly = max(tx_income_3m / 3, profile_income) if tx_income_3m > 0 else profile_income
+            if avg_monthly < 1:
+                avg_monthly = 1.0
 
-            total_income_3mo = WalletTransaction.objects.filter(
-                wallet=wallet,
-                timestamp__gte=start_date,
-                timestamp__lt=end_date,
-                transaction_type='ADD'
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            
-            avg_monthly_income = float(total_income_3mo) / 3
-            if avg_monthly_income < 1: avg_monthly_income = 1.0 # Avoid div/0
+            dti = total_emi / avg_monthly
 
-            # 3. Calculate DTI
-            dti_ratio = total_emi / avg_monthly_income
-            
-            # 4. Scoring Logic
             if total_emi == 0:
-                score = 20 # No debt is excellent
-                note = "Debt-free"
-            elif dti_ratio <= 0.30:
-                score = 18
-                note = "Healthy DTI (<30%)"
-            elif dti_ratio <= 0.40:
-                score = 15
-                note = "Moderate DTI (30-40%)"
-            elif dti_ratio <= 0.50:
-                score = 10
-                note = "High DTI (40-50%)"
+                score, note = 20, 'Debt-free'
+            elif dti <= 0.20:
+                score, note = 18, 'Excellent DTI (≤20%)'
+            elif dti <= 0.30:
+                score, note = 15, 'Healthy DTI (20-30%)'
+            elif dti <= 0.40:
+                score, note = 11, 'Moderate DTI (30-40%)'
+            elif dti <= 0.50:
+                score, note = 7, 'High DTI (40-50%)'
             else:
-                score = 5
-                note = "Critical DTI (>50%)"
+                score, note = 3, 'Critical DTI (>50%)'
 
             metrics = {
-                'total_debt_emi': total_emi,
-                'est_monthly_income': round(avg_monthly_income, 2),
-                'debt_to_income_ratio': round(dti_ratio * 100, 1),
+                'total_emi': total_emi,
+                'avg_monthly_income': round(avg_monthly, 2),
+                'dti_pct': round(dti * 100, 1),
                 'active_loans': loans.count(),
-                'note': note
+                'note': note,
             }
-            explanation = f"Loan Burden: {score}/20. DTI Ratio: {metrics['debt_to_income_ratio']}%. {note}"
-            
-            return score, metrics, explanation
+            expl = f"Loan Burden: {score}/20 — DTI {metrics['dti_pct']}%. {note}."
+            return score, metrics, expl
         except Exception as e:
-            return 15, {}, f"Error calculating loan burden: {str(e)}"
-    
+            return 15, {}, f"Error: {e}"
+
+    # ── 5. Risk Exposure (0-20) ───────────────────────────────────
     def calculate_risk_exposure(self, month_date):
         """
-        Calculate risk exposure score (0-20 points)
-        
-        Factors:
-        - Emergency fund size (10 points)
-        - Financial stability (10 points)
-        
-        Returns: (score, metrics, explanation)
+        Sub-scores:
+          - Emergency fund size (0-10): liquid reserves vs expenses
+          - Income stability (0-10): income variance last 3 months
         """
         try:
+            start, end = self._month_range(month_date)
+            expenses = self._total_expenses(start, end)
+
+            # --- emergency fund (0-10) ---
             wallet = Wallet.objects.filter(user=self.user).first()
-            if not wallet:
-                return 10, {}, "No wallet data available."
-            
-            # Emergency fund score (0-10)
-            # Based on current balance
-            balance = float(wallet.balance)
-            # Target: ₹50,000+ = 10 points
-            emergency_score = min(10, int(10 * (balance / 50000)))
-            
-            # Stability score (0-10)
-            # Based on balance trend over last 3 months
-            three_months_ago = month_date - timedelta(days=90)
-            old_transactions = WalletTransaction.objects.filter(
-                wallet=wallet,
-                timestamp__gte=three_months_ago,
-                timestamp__lt=month_date
-            )
-            
-            if old_transactions.exists():
-                # Positive trend = higher score
-                stability_score = min(10, max(0, int(10 * (balance / 10000))))
+            balance = float(wallet.balance) if wallet else 0
+            monthly_exp = expenses if expenses > 0 else 1
+            months_reserve = balance / monthly_exp
+
+            if months_reserve >= 6:
+                emerg = 10
+            elif months_reserve >= 3:
+                emerg = 7
+            elif months_reserve >= 1:
+                emerg = 4
             else:
-                stability_score = 5  # Neutral if no history
-            
-            total_score = emergency_score + stability_score
-            
+                emerg = 1
+
+            # --- income stability (0-10) ---
+            # Check income variance over last 3 months
+            monthly_incomes = []
+            # Convert month_date to a plain date for arithmetic
+            base_date = month_date.date() if isinstance(month_date, datetime) else month_date
+            for i in range(3):
+                m_start_date = (base_date - timedelta(days=30 * (i + 1))).replace(day=1)
+                if m_start_date.month == 12:
+                    m_end_date = m_start_date.replace(year=m_start_date.year + 1, month=1, day=1)
+                else:
+                    m_end_date = m_start_date.replace(month=m_start_date.month + 1, day=1)
+                m_start_aware = self._to_aware_datetime(m_start_date)
+                m_end_aware = self._to_aware_datetime(m_end_date)
+                mi = float(Transaction.objects.filter(
+                    user=self.user, type='income',
+                    date__gte=m_start_aware, date__lt=m_end_aware
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0'))
+                if mi == 0:
+                    mi = self._get_profile_income()
+                monthly_incomes.append(mi)
+
+            avg_inc = sum(monthly_incomes) / 3 if monthly_incomes else 1
+            if avg_inc > 0:
+                variance = sum(abs(m - avg_inc) for m in monthly_incomes) / (3 * avg_inc)
+                if variance <= 0.05:
+                    stability = 10
+                elif variance <= 0.15:
+                    stability = 7
+                elif variance <= 0.30:
+                    stability = 4
+                else:
+                    stability = 2
+            else:
+                stability = 5
+
+            total = max(0, min(20, emerg + stability))
             metrics = {
-                'current_balance': balance,
-                'emergency_score': emergency_score,
-                'stability_score': stability_score
+                'wallet_balance': balance,
+                'months_reserve': round(months_reserve, 1),
+                'monthly_incomes': [round(m, 2) for m in monthly_incomes],
+                'income_variance': round(variance, 3) if avg_inc > 0 else 0,
             }
-            
-            explanation = f"Risk exposure: {total_score}/20. " \
-                         f"Emergency fund: ₹{balance:.2f}, Stability: {stability_score}/10."
-            
-            return total_score, metrics, explanation
-            
+            expl = (f"Risk Exposure: {total}/20 — "
+                    f"Reserve {months_reserve:.1f} months, "
+                    f"income stability {stability}/10.")
+            return total, metrics, expl
         except Exception as e:
-            return 10, {}, f"Error calculating risk exposure: {str(e)}"
-    
+            return 10, {}, f"Error: {e}"
+
+    # ── Total Score ───────────────────────────────────────────────
     def calculate_total_score(self, month_date):
-        """
-        Calculate total financial health score (0-100)
-        
-        Aggregates all 5 factor scores
-        
-        Returns: FinancialHealthScore object
-        """
-        # Calculate all factors
-        spending_score, spending_metrics, spending_explanation = self.calculate_spending_discipline(month_date)
-        savings_score, savings_metrics, savings_explanation = self.calculate_savings_ratio(month_date)
-        credit_score, credit_metrics, credit_explanation = self.calculate_credit_utilization(month_date)
-        loan_score, loan_metrics, loan_explanation = self.calculate_loan_burden(month_date)
-        risk_score, risk_metrics, risk_explanation = self.calculate_risk_exposure(month_date)
-        
-        # Calculate total score (clamped to 0-100)
-        total_score = spending_score + savings_score + credit_score + loan_score + risk_score
-        total_score = max(0, min(100, total_score))
-        
-        # Generate overall explanation
-        explanation = f"""Financial Health Score: {total_score}/100
+        """Aggregate all 5 factors into a 0-100 score and persist."""
+        spending_score, spending_m, spending_e = self.calculate_spending_discipline(month_date)
+        savings_score, savings_m, savings_e = self.calculate_savings_ratio(month_date)
+        credit_score, credit_m, credit_e = self.calculate_credit_utilization(month_date)
+        loan_score, loan_m, loan_e = self.calculate_loan_burden(month_date)
+        risk_score, risk_m, risk_e = self.calculate_risk_exposure(month_date)
 
-Breakdown:
-- Spending Discipline: {spending_score}/20
-- Savings Ratio: {savings_score}/20
-- Credit Utilization: {credit_score}/20
-- Loan Burden: {loan_score}/20
-- Risk Exposure: {risk_score}/20
+        total = max(0, min(100,
+                           spending_score + savings_score + credit_score + loan_score + risk_score))
 
-{spending_explanation}
-{savings_explanation}
-{credit_explanation}
-{loan_explanation}
-{risk_explanation}
-"""
-        
-        # Generate recommendations
+        explanation = (
+            f"Financial Health Score: {total}/100\n\n"
+            f"Breakdown:\n"
+            f"- Spending Discipline: {spending_score}/20\n"
+            f"- Savings Ratio: {savings_score}/20\n"
+            f"- Credit Discipline: {credit_score}/20\n"
+            f"- Loan Burden: {loan_score}/20\n"
+            f"- Risk Exposure: {risk_score}/20\n\n"
+            f"{spending_e}\n{savings_e}\n{credit_e}\n{loan_e}\n{risk_e}"
+        )
+
         recommendations = []
-        
-        if spending_score < 15:
+        if spending_score < 14:
             recommendations.append({
                 'title': 'Improve Spending Discipline',
-                'description': 'Track your expenses and create a monthly budget',
-                'priority': 'high'
+                'description': 'Keep expenses below 70% of income and diversify spending across categories.',
+                'priority': 'high',
             })
-        
-        if savings_score < 15:
+        if savings_score < 14:
             recommendations.append({
                 'title': 'Increase Savings Rate',
-                'description': 'Aim to save at least 20% of your income',
-                'priority': 'high'
+                'description': 'Aim to save at least 20% of your monthly income.',
+                'priority': 'high',
             })
-        
-        if risk_score < 15:
+        if credit_score < 18:
             recommendations.append({
-                'title': 'Build Emergency Fund',
-                'description': 'Save at least 3-6 months of expenses',
-                'priority': 'medium'
+                'title': 'Improve Credit Discipline',
+                'description': 'Avoid missing EMI payments to maintain a strong credit profile.',
+                'priority': 'medium',
             })
-        
-        # Create or update score record
-        health_score, created = FinancialHealthScore.objects.update_or_create(
+        if loan_score < 14:
+            recommendations.append({
+                'title': 'Reduce Debt Burden',
+                'description': 'Work toward a DTI ratio below 30% by accelerating repayments.',
+                'priority': 'high',
+            })
+        if risk_score < 14:
+            recommendations.append({
+                'title': 'Build Emergency Reserves',
+                'description': 'Save 3-6 months of expenses in a liquid account.',
+                'priority': 'medium',
+            })
+
+        health_score, _ = FinancialHealthScore.objects.update_or_create(
             user=self.user,
             month=month_date,
             defaults={
-                'score': total_score,
+                'score': total,
                 'spending_discipline_score': spending_score,
                 'savings_ratio_score': savings_score,
                 'credit_utilization_score': credit_score,
                 'loan_burden_score': loan_score,
                 'risk_exposure_score': risk_score,
                 'explanation': explanation,
-                'recommendations': recommendations
-            }
+                'recommendations': recommendations,
+            },
         )
-        
-        # Create factor details
+
         factors = [
-            ('spending_discipline', spending_score, spending_metrics, spending_explanation),
-            ('savings_ratio', savings_score, savings_metrics, savings_explanation),
-            ('credit_utilization', credit_score, credit_metrics, credit_explanation),
-            ('loan_burden', loan_score, loan_metrics, loan_explanation),
-            ('risk_exposure', risk_score, risk_metrics, risk_explanation),
+            ('spending_discipline', spending_score, spending_m, spending_e),
+            ('savings_ratio', savings_score, savings_m, savings_e),
+            ('credit_utilization', credit_score, credit_m, credit_e),
+            ('loan_burden', loan_score, loan_m, loan_e),
+            ('risk_exposure', risk_score, risk_m, risk_e),
         ]
-        
-        for factor_name, score, metrics, expl in factors:
+        for name, sc, met, exp in factors:
             ScoreFactorDetail.objects.update_or_create(
                 health_score=health_score,
-                factor_name=factor_name,
-                defaults={
-                    'score': score,
-                    'weight': 0.2,
-                    'metrics': metrics,
-                    'explanation': expl
-                }
+                factor_name=name,
+                defaults={'score': sc, 'weight': 0.2, 'metrics': met, 'explanation': exp},
             )
-        
+
         return health_score

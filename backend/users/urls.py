@@ -20,6 +20,10 @@ from .views import (
     DeleteNotificationAPIView,
     OnboardingAPIView,
     PurchaseCreditsAPIView,
+    UserSettingsView,
+    ChangePasswordView,
+    UserProfileFullView,
+    export_user_data,
 )
 
 urlpatterns = [
@@ -49,5 +53,11 @@ urlpatterns = [
     
     # Credit purchase
     path('purchase-credits/', PurchaseCreditsAPIView.as_view(), name='purchase_credits'),
+
+    # Settings
+    path('settings/', UserSettingsView.as_view(), name='user_settings'),
+    path('change-password/', ChangePasswordView.as_view(), name='change_password'),
+    path('profile/full/', UserProfileFullView.as_view(), name='profile_full'),
+    path('export-data/', export_user_data, name='export_data'),
 ]
 

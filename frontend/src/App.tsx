@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Landing from './pages/Landing';
 import SignIn from './pages/auth/SignIn';
 import SignUp from './pages/auth/SignUp';
+import ForgotPassword from './pages/auth/ForgotPassword';
 import Onboarding from './pages/Onboarding';
 import DashboardLayout from './layouts/DashboardLayout';
 import FAQ from './pages/FAQ';
@@ -37,6 +38,7 @@ export default function App() {
                         <Route path="/subscription" element={<Subscription />} />
                         <Route path="/login" element={<SignIn />} />
                         <Route path="/signup" element={<SignUp />} />
+                        <Route path="/forgot-password" element={<ForgotPassword />} />
                         <Route path="/onboarding" element={
                             <ProtectedRoute><Onboarding /></ProtectedRoute>
                         } />

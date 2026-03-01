@@ -343,7 +343,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'date_joined', 'email', 'username', 'is_active', 'credits')
 
 
-from .models import Notification, Card
+from .models import Notification, Card, UserSettings
 
 class NotificationSerializer(serializers.ModelSerializer):
     """
@@ -401,22 +401,46 @@ class OnboardingSerializer(serializers.Serializer):
         return value
 
 
-class UserLoginSerializer(serializers.Serializer):
+# Note: UserLoginSerializer is defined earlier in this file (around line 97).
+# Additional serializers below.
+
+
+class UserSettingsSerializer(serializers.ModelSerializer):
+    """Serializer for user preferences (notifications, privacy, appearance)."""
+    class Meta:
+        model = UserSettings
+        fields = (
+            'currency', 'language', 'dark_mode',
+            'budget_alerts', 'goal_reminders', 'weekly_report', 'ai_insights', 'market_updates',
+            'show_balance', 'analytics_sharing', 'crash_reports',
+            'updated_at',
+        )
+        read_only_fields = ('updated_at',)
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Serializer for authenticated password change."""
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True, validators=[validate_password])
+    new_password_confirm = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError({'new_password_confirm': 'Passwords do not match.'})
+        return attrs
+
+
+class UserProfileFullSerializer(serializers.ModelSerializer):
     """
-    Production-ready serializer for user login.
-    
-    Validates credentials against the database and returns the user object
-    if authentication is successful.
-    
-    Features:
-    - Email-based authentication
-    - Secure password comparison using Django's check_password
-    - User active status validation
-    - Clear error messages (generic to prevent user enumeration)
+    Full user profile with summary stats for the settings page.
     """
-    email = serializers.EmailField(required=True)
-    password = serializers.CharField(
-        write_only=True,
-        required=True,
-        style={'input_type': 'password'}
-    )
+    settings = UserSettingsSerializer(read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'id', 'email', 'username', 'first_name', 'last_name',
+            'income', 'credits', 'is_active', 'date_joined',
+            'onboarding_completed', 'email_verified', 'settings',
+        )
+        read_only_fields = fields

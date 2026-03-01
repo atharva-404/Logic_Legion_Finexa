@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, FileText, ChevronRight, Sparkles, AlertCircle, Loader2, Calendar } from 'lucide-react';
 import { AIAPI } from '../../lib/api';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Doc {
     id: number;
@@ -13,6 +14,7 @@ interface Doc {
 }
 
 export default function Documents() {
+    const { isDark } = useTheme();
     const [docs, setDocs] = useState<Doc[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -100,9 +102,14 @@ export default function Documents() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="font-display font-bold text-2xl" style={{ color: 'var(--text-primary)' }}>Documents & AI Analysis</h1>
-                <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Upload bank statements or PDFs — get instant AI-powered insights</p>
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: isDark ? 'rgba(0,212,255,0.12)' : 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.25)' }}>
+                    <FileText size={18} style={{ color: 'var(--aqua)' }} />
+                </div>
+                <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>AI-Powered</p>
+                    <h1 className="font-display font-bold text-2xl text-gradient">Documents & Analysis</h1>
+                </div>
             </div>
 
             {/* Upload zone */}
@@ -156,16 +163,16 @@ export default function Documents() {
             {loading && (
                 <div className="flex items-center justify-center py-8">
                     <Loader2 size={24} className="animate-spin text-purple-400" />
-                    <span className="ml-2 text-slate-400 text-sm">Loading documents...</span>
+                    <span className="ml-2 text-sm" style={{ color: 'var(--text-muted)' }}>Loading documents...</span>
                 </div>
             )}
 
             {/* Empty state */}
             {!loading && docs.length === 0 && (
                 <div className="text-center py-12">
-                    <FileText size={48} className="mx-auto mb-3 text-slate-600" />
-                    <p className="text-slate-400 font-medium">No documents uploaded yet</p>
-                    <p className="text-slate-500 text-sm mt-1">Upload a bank statement or PDF to get AI-powered insights</p>
+                    <FileText size={48} className="mx-auto mb-3" style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                    <p className="font-medium" style={{ color: 'var(--text-muted)' }}>No documents uploaded yet</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>Upload a bank statement or PDF to get AI-powered insights</p>
                 </div>
             )}
 
@@ -173,7 +180,7 @@ export default function Documents() {
             {docs.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     {/* Doc list */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass p-5">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                         <h3 className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Uploaded Documents</h3>
                         <div className="space-y-2.5">
                             {docs.map(doc => (
@@ -201,7 +208,7 @@ export default function Documents() {
 
                     {/* Doc details */}
                     {activeDoc && (
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass p-5 space-y-4">
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card-glow p-5 space-y-4" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                             <div className="flex items-center justify-between">
                                 <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{activeDoc.name}</h3>
                             </div>

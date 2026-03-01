@@ -3,7 +3,7 @@ import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function ThemeToggle({ size = 'md' }: { size?: 'sm' | 'md' }) {
-    const { isDark, toggleTheme } = useTheme();
+    const { isDark, toggle } = useTheme();
     const isSmall = size === 'sm';
 
     const trackW = isSmall ? 50 : 56;
@@ -14,7 +14,7 @@ export default function ThemeToggle({ size = 'md' }: { size?: 'sm' | 'md' }) {
 
     return (
         <motion.button
-            onClick={toggleTheme}
+            onClick={toggle}
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             whileHover={{ scale: 1.06 }}
             whileTap={{ scale: 0.94 }}

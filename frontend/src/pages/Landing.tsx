@@ -739,7 +739,7 @@ export default function Landing() {
                                 </li>
                             ))}
                         </ul>
-                        <Link to="/signup" className="btn w-fit">Try AI Coach Free <ArrowRight size={15} /></Link>
+                        <Link to={user ? "/dashboard/coach" : "/signup"} className="btn w-fit">Try AI Coach Free <ArrowRight size={15} /></Link>
                     </motion.div>
 
                     <motion.div initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>

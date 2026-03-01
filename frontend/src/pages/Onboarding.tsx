@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { OnboardingAPI, OnboardingData } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const SPENDING_CATEGORIES = [
     { value: 'rent', label: 'Rent / Housing', icon: Home, color: '#a855f7' },
@@ -30,6 +31,7 @@ interface SpendingEntry {
 
 export default function Onboarding() {
     const { refreshUser } = useAuth();
+    const { isDark } = useTheme();
     const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [firstName, setFirstName] = useState('');
@@ -90,7 +92,7 @@ export default function Onboarding() {
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4"
-            style={{ background: 'var(--bg, #0a0a1a)' }}>
+            style={{ background: isDark ? '#0a0a1a' : '#f1f5f9' }}>
             <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -98,11 +100,8 @@ export default function Onboarding() {
             >
                 {/* Logo */}
                 <div className="flex items-center gap-3 mb-6 justify-center">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                        style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
-                        <TrendingUp size={18} className="text-white" />
-                    </div>
-                    <span className="font-bold text-2xl" style={{ color: 'var(--text-1, #fff)' }}>Finexa</span>
+                    <img src="/logo.png" alt="Finexa" className="w-10 h-10 rounded-xl object-contain" />
+                    <span className="font-bold text-2xl" style={{ color: isDark ? '#fff' : '#0f172a' }}>Finexa</span>
                 </div>
 
                 {/* Progress bar */}
@@ -121,7 +120,7 @@ export default function Onboarding() {
                     ))}
                 </div>
 
-                <div className="glass-card p-6">
+                <div className="card-glow p-6" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.9)' }}>
                     <AnimatePresence mode="wait">
                         {/* Step 1: Personal Info */}
                         {step === 1 && (
@@ -134,30 +133,30 @@ export default function Onboarding() {
                                         <User size={18} style={{ color: '#a855f7' }} />
                                     </div>
                                     <div>
-                                        <h2 className="text-white font-bold text-lg">Welcome! Let's get started</h2>
-                                        <p className="text-slate-400 text-xs">Tell us a bit about yourself</p>
+                                        <h2 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>Welcome! Let's get started</h2>
+                                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Tell us a bit about yourself</p>
                                     </div>
                                 </div>
 
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-xs text-slate-400 mb-1.5 block">First Name *</label>
+                                        <label className={`text-xs mb-1.5 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>First Name *</label>
                                         <input className="input-field text-sm w-full" placeholder="Your first name"
                                             value={firstName} onChange={e => setFirstName(e.target.value)} />
                                     </div>
                                     <div>
-                                        <label className="text-xs text-slate-400 mb-1.5 block">Last Name</label>
+                                        <label className={`text-xs mb-1.5 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Last Name</label>
                                         <input className="input-field text-sm w-full" placeholder="Your last name (optional)"
                                             value={lastName} onChange={e => setLastName(e.target.value)} />
                                     </div>
                                     <div>
-                                        <label className="text-xs text-slate-400 mb-1.5 block">Monthly Income (₹) *</label>
+                                        <label className={`text-xs mb-1.5 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Monthly Income (₹) *</label>
                                         <div className="relative">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">₹</span>
                                             <input type="number" className="input-field text-sm w-full pl-7" placeholder="e.g. 50000"
                                                 value={income} onChange={e => setIncome(e.target.value)} />
                                         </div>
-                                        <p className="text-[10px] text-slate-500 mt-1">Your total monthly salary/income before deductions</p>
+                                        <p className={`text-[10px] mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Your total monthly salary/income before deductions</p>
                                     </div>
                                 </div>
 
@@ -188,8 +187,8 @@ export default function Onboarding() {
                                         <ShoppingCart size={18} style={{ color: '#10b981' }} />
                                     </div>
                                     <div>
-                                        <h2 className="text-white font-bold text-lg">Your Monthly Spending</h2>
-                                        <p className="text-slate-400 text-xs">Add your regular monthly expenses (approximate)</p>
+                                        <h2 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>Your Monthly Spending</h2>
+                                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Add your regular monthly expenses (approximate)</p>
                                     </div>
                                 </div>
 
@@ -212,7 +211,7 @@ export default function Onboarding() {
                                                     </select>
                                                     {spending.length > 1 && (
                                                         <button onClick={() => removeSpending(idx)}
-                                                            className="text-slate-600 hover:text-red-400 p-1">
+                                                            className={`hover:text-red-400 p-1 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
                                                             <Trash2 size={13} />
                                                         </button>
                                                     )}
@@ -234,8 +233,8 @@ export default function Onboarding() {
                                 </div>
 
                                 <button onClick={addSpending}
-                                    className="w-full mt-3 flex items-center justify-center gap-1.5 text-xs py-2 rounded-xl border border-dashed transition-all text-slate-400 hover:text-purple-400 hover:border-purple-500/30"
-                                    style={{ borderColor: 'rgba(100,116,139,0.3)' }}>
+                                    className={`w-full mt-3 flex items-center justify-center gap-1.5 text-xs py-2 rounded-xl border border-dashed transition-all hover:text-purple-400 hover:border-purple-500/30 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
+                                    style={{ borderColor: isDark ? 'rgba(100,116,139,0.3)' : 'rgba(100,116,139,0.25)' }}>
                                     <Plus size={12} /> Add Another Expense
                                 </button>
 
@@ -263,30 +262,30 @@ export default function Onboarding() {
                                         <CheckCircle size={18} style={{ color: '#3b82f6' }} />
                                     </div>
                                     <div>
-                                        <h2 className="text-white font-bold text-lg">Review Your Profile</h2>
-                                        <p className="text-slate-400 text-xs">Make sure everything looks good</p>
+                                        <h2 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>Review Your Profile</h2>
+                                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Make sure everything looks good</p>
                                     </div>
                                 </div>
 
                                 {/* Summary */}
                                 <div className="space-y-3">
                                     <div className="p-3 rounded-xl" style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.12)' }}>
-                                        <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Name</p>
-                                        <p className="text-white font-semibold">{firstName} {lastName}</p>
+                                        <p className={`text-[10px] uppercase tracking-wide mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Name</p>
+                                        <p className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{firstName} {lastName}</p>
                                     </div>
 
                                     <div className="grid grid-cols-3 gap-3">
-                                        <div className="p-3 rounded-xl text-center" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.12)' }}>
-                                            <p className="text-[10px] text-slate-500 mb-0.5">Income</p>
-                                            <p className="text-green-400 font-bold text-sm">₹{(+income || 0).toLocaleString('en-IN')}</p>
+                                        <div className="p-3 rounded-xl text-center" style={{ background: isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.08)', border: `1px solid ${isDark ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.2)'}` }}>
+                                            <p className={`text-[10px] mb-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Income</p>
+                                            <p className={`font-bold text-sm ${isDark ? 'text-green-400' : 'text-green-600'}`}>₹{(+income || 0).toLocaleString('en-IN')}</p>
                                         </div>
-                                        <div className="p-3 rounded-xl text-center" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.12)' }}>
-                                            <p className="text-[10px] text-slate-500 mb-0.5">Expenses</p>
-                                            <p className="text-red-400 font-bold text-sm">₹{totalSpending.toLocaleString('en-IN')}</p>
+                                        <div className="p-3 rounded-xl text-center" style={{ background: isDark ? 'rgba(239,68,68,0.06)' : 'rgba(239,68,68,0.08)', border: `1px solid ${isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.2)'}` }}>
+                                            <p className={`text-[10px] mb-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Expenses</p>
+                                            <p className={`font-bold text-sm ${isDark ? 'text-red-400' : 'text-red-600'}`}>₹{totalSpending.toLocaleString('en-IN')}</p>
                                         </div>
-                                        <div className="p-3 rounded-xl text-center" style={{ background: savings >= 0 ? 'rgba(59,130,246,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${savings >= 0 ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.12)'}` }}>
-                                            <p className="text-[10px] text-slate-500 mb-0.5">Savings</p>
-                                            <p className={`font-bold text-sm ${savings >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+                                        <div className="p-3 rounded-xl text-center" style={{ background: savings >= 0 ? (isDark ? 'rgba(59,130,246,0.06)' : 'rgba(59,130,246,0.08)') : (isDark ? 'rgba(239,68,68,0.06)' : 'rgba(239,68,68,0.08)'), border: `1px solid ${savings >= 0 ? (isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.2)') : (isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.2)')}` }}>
+                                            <p className={`text-[10px] mb-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Savings</p>
+                                            <p className={`font-bold text-sm ${savings >= 0 ? (isDark ? 'text-blue-400' : 'text-blue-600') : (isDark ? 'text-red-400' : 'text-red-600')}`}>
                                                 ₹{savings.toLocaleString('en-IN')}
                                             </p>
                                         </div>
@@ -294,7 +293,7 @@ export default function Onboarding() {
 
                                     {spending.filter(s => +s.amount > 0).length > 0 && (
                                         <div className="p-3 rounded-xl" style={{ background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.08)' }}>
-                                            <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-2">Expense Breakdown</p>
+                                            <p className={`text-[10px] uppercase tracking-wide mb-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Expense Breakdown</p>
                                             <div className="space-y-1.5">
                                                 {spending.filter(s => +s.amount > 0).map((s, i) => {
                                                     const cat = SPENDING_CATEGORIES.find(c => c.value === s.category);
@@ -303,9 +302,9 @@ export default function Onboarding() {
                                                         <div key={i} className="flex items-center justify-between">
                                                             <div className="flex items-center gap-2">
                                                                 <CatIcon size={12} style={{ color: cat?.color }} />
-                                                                <span className="text-xs text-slate-300">{cat?.label || s.category}</span>
+                                                                <span className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{cat?.label || s.category}</span>
                                                             </div>
-                                                            <span className="text-xs text-white font-medium">₹{(+s.amount).toLocaleString('en-IN')}</span>
+                                                            <span className={`text-xs font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>₹{(+s.amount).toLocaleString('en-IN')}</span>
                                                         </div>
                                                     );
                                                 })}
@@ -337,7 +336,7 @@ export default function Onboarding() {
                     </AnimatePresence>
                 </div>
 
-                <p className="text-center text-[10px] text-slate-600 mt-4">
+                <p className={`text-center text-[10px] mt-4 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
                     You can always update this information later in Settings
                 </p>
             </motion.div>

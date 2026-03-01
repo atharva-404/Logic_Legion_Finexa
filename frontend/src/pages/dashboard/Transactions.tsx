@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { PlusCircle, TrendingUp, TrendingDown, Filter, FileText, Loader2 } from 'lucide-react';
+import { PlusCircle, TrendingUp, TrendingDown, Filter, FileText, Loader2, ArrowUpDown } from 'lucide-react';
 import { TransactionsAPI } from '../../lib/api';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const BASE_CATEGORIES = ['Food', 'Transport', 'Housing', 'Entertainment', 'Health', 'Shopping', 'Utilities', 'Income', 'Other'];
 
@@ -17,6 +18,8 @@ export default function Transactions() {
     const [form, setForm] = useState({ amount: '', category: 'Food', type: 'expense', description: '', date: new Date().toISOString().slice(0, 10) });
     const [isLoading, setIsLoading] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
+    const [summaryIncome, setSummaryIncome] = useState(0);
+    const { isDark } = useTheme();
 
     // Build dynamic categories from fetched transactions
     const allCategories = ['All', ...Array.from(new Set([...BASE_CATEGORIES, ...txList.map(t => t.category)]))].filter(Boolean);
@@ -36,6 +39,11 @@ export default function Transactions() {
                     page++;
                 }
                 setTxList(allTx);
+                // Fetch income from API summary
+                try {
+                    const summary = await TransactionsAPI.summary();
+                    setSummaryIncome(summary.total_income || 0);
+                } catch { /* summary unavailable */ }
             } catch (err) {
                 console.error('Failed to load transactions:', err);
             } finally {
@@ -62,7 +70,8 @@ export default function Transactions() {
     if (sourceFilter === 'PDF Upload') filtered = filtered.filter(t => t.source === 'pdf');
     else if (sourceFilter === 'Manual') filtered = filtered.filter(t => !t.source || t.source === 'manual');
 
-    const totalIncome = txList.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const txIncome = txList.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const totalIncome = txIncome > 0 ? txIncome : summaryIncome;
     const totalExpenses = txList.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const pdfCount = txList.filter(t => t.source === 'pdf').length;
 
@@ -79,12 +88,20 @@ export default function Transactions() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="font-display font-bold text-2xl" style={{ color: 'var(--text-primary)' }}>Transactions</h1>
-                    <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    <div className="flex items-center gap-3 mb-1">
+                        <div className={`p-2 rounded-lg border ${isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'}`}>
+                            <TrendingUp size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--aqua)' }}>Financial Ledger</p>
+                            <h1 className="font-display font-bold text-2xl text-gradient">Transactions</h1>
+                        </div>
+                    </div>
+                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
                         {txList.length} transactions · {pdfCount} from PDF uploads
                     </p>
                 </div>
-                <button onClick={() => setShowForm(!showForm)} className="btn-aqua text-sm px-4 py-2.5">
+                <button onClick={() => setShowForm(!showForm)} className="btn-aqua text-sm px-4 py-2.5 flex items-center gap-2">
                     <PlusCircle size={16} /> Add Transaction
                 </button>
             </div>
@@ -97,12 +114,15 @@ export default function Transactions() {
                     { label: 'Net Balance', value: totalIncome - totalExpenses, icon: TrendingUp, color: totalIncome > totalExpenses ? '#10b981' : '#ef4444' },
                 ].map((s, i) => (
                     <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                        className="glass p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                            <s.icon size={13} style={{ color: s.color }} />
-                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.label}</span>
+                        className="card-glow p-5"
+                        style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 rounded-lg" style={{ background: `${s.color}18`, border: `1px solid ${s.color}30` }}>
+                                <s.icon size={16} style={{ color: s.color }} />
+                            </div>
+                            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{s.label}</span>
                         </div>
-                        <p className="font-bold text-xl" style={{ color: s.color }}>₹{Math.abs(s.value).toLocaleString('en-IN')}</p>
+                        <p className="font-bold text-2xl" style={{ color: s.color }}>₹{Math.abs(s.value).toLocaleString('en-IN')}</p>
                     </motion.div>
                 ))}
             </div>
@@ -110,7 +130,8 @@ export default function Transactions() {
             {/* Add form */}
             {showForm && (
                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                    className="glass p-5">
+                    className="card-glow p-5"
+                    style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                     <h3 className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>New Transaction</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                         <div>
@@ -151,41 +172,55 @@ export default function Transactions() {
                 </motion.div>
             )}
 
-            {/* Source filter */}
-            <div className="flex flex-wrap gap-2 items-center">
-                <FileText size={14} className="self-center" style={{ color: 'var(--text-muted)' }} />
-                {SOURCE_FILTERS.map(sf => (
-                    <button key={sf} onClick={() => setSourceFilter(sf)}
-                        className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                        style={sourceFilter === sf
-                            ? { background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)', color: '#a855f7' }
-                            : { background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
-                        {sf === 'PDF Upload' ? `📄 ${sf} (${pdfCount})` : sf}
-                    </button>
-                ))}
-            </div>
-
-            {/* Category filter chips */}
-            <div className="flex flex-wrap gap-2">
-                <Filter size={14} className="self-center" style={{ color: 'var(--text-muted)' }} />
-                {allCategories.map(cat => (
-                    <button key={cat} onClick={() => setCategory(cat)}
-                        className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                        style={category === cat
-                            ? { background: 'rgba(0,212,255,0.15)', border: '1px solid rgba(0,212,255,0.35)', color: 'var(--aqua)' }
-                            : { background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
-                        {cat}
-                    </button>
-                ))}
+            {/* Filters Section */}
+            <div className={`card-glow p-4 space-y-3`} style={{ background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.8)' }}>
+                <div className="flex items-center gap-2 mb-1">
+                    <ArrowUpDown size={13} style={{ color: 'var(--aqua)' }} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--aqua)' }}>Filters</span>
+                </div>
+                {/* Source filter */}
+                <div className="flex flex-wrap gap-2 items-center">
+                    <FileText size={13} className="flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                    {SOURCE_FILTERS.map(sf => (
+                        <button key={sf} onClick={() => setSourceFilter(sf)}
+                            className="px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:scale-[1.03]"
+                            style={sourceFilter === sf
+                                ? { background: isDark ? 'rgba(168,85,247,0.15)' : 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.35)', color: '#a855f7' }
+                                : { background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, color: 'var(--text-muted)' }}>
+                            {sf === 'PDF Upload' ? `📄 ${sf} (${pdfCount})` : sf}
+                        </button>
+                    ))}
+                </div>
+                {/* Category filter chips */}
+                <div className="flex flex-wrap gap-2">
+                    <Filter size={13} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }} />
+                    {allCategories.map(cat => (
+                        <button key={cat} onClick={() => setCategory(cat)}
+                            className="px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:scale-[1.03]"
+                            style={category === cat
+                                ? { background: isDark ? 'rgba(0,212,255,0.15)' : 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.35)', color: 'var(--aqua)' }
+                                : { background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, color: 'var(--text-muted)' }}>
+                            {cat}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Transaction list */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass p-5">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                className="card-glow p-5"
+                style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Recent Activity</h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: isDark ? 'rgba(0,212,255,0.08)' : 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)', color: 'var(--aqua)' }}>
+                        {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+                    </span>
+                </div>
                 <div className="space-y-2">
                     {filtered.map((tx, i) => (
                         <motion.div key={tx.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                             className="flex items-center justify-between p-3.5 rounded-xl transition-all hover:scale-[1.007]"
-                            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                            style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}>
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                                     style={{ background: tx.type === 'income' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)' }}>

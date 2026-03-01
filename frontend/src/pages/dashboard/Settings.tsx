@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import {
     User, Bell, Shield, Palette, Database, ChevronRight,
     Save, Trash2, Eye, EyeOff, Sun, Moon, Check,
-    Download, LogOut, TrendingUp, Sparkles, Globe, Loader2
+    Download, LogOut, TrendingUp, Sparkles, Globe, Loader2, Lock
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { AuthAPI, TransactionsAPI } from '../../lib/api';
+import { AuthAPI, SettingsAPI } from '../../lib/api';
 import { useNavigate } from 'react-router-dom';
 
 const TABS = [
@@ -52,6 +52,7 @@ export default function Settings() {
     const [saved, setSaved] = useState(false);
     const [showSuccess, setShowSuccess] = useState('');
     const [saving, setSaving] = useState(false);
+    const [settingsLoaded, setSettingsLoaded] = useState(false);
 
     // Financial data from API
     const [monthlyIncome, setMonthlyIncome] = useState(0);
@@ -63,30 +64,56 @@ export default function Settings() {
     const [name, setName] = useState(user?.first_name || user?.username || '');
     const [email, setEmail] = useState(user?.email || '');
     const [currency, setCurrency] = useState('INR');
+    const [language, setLanguage] = useState('en');
 
+    // Change password
+    const [showPasswordForm, setShowPasswordForm] = useState(false);
+    const [oldPassword, setOldPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwordSaving, setPasswordSaving] = useState(false);
+
+    // Load settings + financial summary from API
     useEffect(() => {
-        async function loadFinancialSummary() {
+        async function loadSettings() {
             try {
-                const txRes = await TransactionsAPI.list();
-                const transactions = txRes.results ?? txRes;
-                const now = new Date();
-                const thisMonth = now.getMonth();
-                const thisYear = now.getFullYear();
-                let inc = 0, exp = 0;
-                (transactions as any[]).forEach(tx => {
-                    const d = new Date(tx.date ?? tx.created_at);
-                    if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) {
-                        const amt = parseFloat(tx.amount) || 0;
-                        if (tx.type === 'income' || tx.type === 'credit' || tx.transaction_type === 'income') inc += amt;
-                        else exp += amt;
-                    }
+                const [settings, fullProfile] = await Promise.all([
+                    SettingsAPI.get(),
+                    SettingsAPI.getFullProfile().catch(() => null),
+                ]);
+                // Apply persisted settings
+                setCurrency(settings.currency || 'INR');
+                setLanguage(settings.language || 'en');
+                setNotifs({
+                    budgetAlerts: settings.budget_alerts ?? true,
+                    goalReminders: settings.goal_reminders ?? true,
+                    weeklyReport: settings.weekly_report ?? true,
+                    aiInsights: settings.ai_insights ?? false,
+                    marketUpdates: settings.market_updates ?? false,
                 });
-                setMonthlyIncome(inc);
-                setMonthlyExpenses(exp);
-                setEmergencySavings(0);
-            } catch { /* ignore */ }
+                setPrivacy({
+                    showBalance: settings.show_balance ?? true,
+                    analyticsSharing: settings.analytics_sharing ?? false,
+                    crashReports: settings.crash_reports ?? true,
+                });
+                // Apply dark mode from settings
+                if (settings.dark_mode !== undefined && settings.dark_mode !== isDark) {
+                    toggle();
+                }
+                // Financial summary from full profile
+                if (fullProfile?.financial_summary) {
+                    const fs = fullProfile.financial_summary;
+                    setMonthlyIncome(fs.monthly_income || 0);
+                    setMonthlyExpenses(fs.monthly_expenses || 0);
+                    setEmergencySavings(fs.savings || 0);
+                }
+                setSettingsLoaded(true);
+            } catch (e) {
+                console.error('Failed to load settings', e);
+                setSettingsLoaded(true);
+            }
         }
-        loadFinancialSummary();
+        loadSettings();
     }, []);
 
     // Notifications
@@ -108,12 +135,91 @@ export default function Settings() {
     async function handleSaveProfile() {
         setSaving(true);
         try {
-            await AuthAPI.updateProfile({ first_name: name, email });
+            await Promise.all([
+                AuthAPI.updateProfile({ first_name: name }),
+                SettingsAPI.update({ currency }),
+            ]);
             showSaved('Profile saved');
         } catch {
             showSaved('Failed to save profile');
         }
         setSaving(false);
+    }
+
+    async function handleSaveNotifications() {
+        setSaving(true);
+        try {
+            await SettingsAPI.update({
+                budget_alerts: notifs.budgetAlerts,
+                goal_reminders: notifs.goalReminders,
+                weekly_report: notifs.weeklyReport,
+                ai_insights: notifs.aiInsights,
+                market_updates: notifs.marketUpdates,
+            });
+            showSaved('Notification preferences saved');
+        } catch {
+            showSaved('Failed to save notification preferences');
+        }
+        setSaving(false);
+    }
+
+    async function handleSavePrivacy() {
+        setSaving(true);
+        try {
+            await SettingsAPI.update({
+                show_balance: privacy.showBalance,
+                analytics_sharing: privacy.analyticsSharing,
+                crash_reports: privacy.crashReports,
+            });
+            showSaved('Privacy settings saved');
+        } catch {
+            showSaved('Failed to save privacy settings');
+        }
+        setSaving(false);
+    }
+
+    async function handleChangePassword() {
+        if (newPassword !== confirmPassword) {
+            showSaved('Passwords do not match');
+            return;
+        }
+        if (newPassword.length < 8) {
+            showSaved('Password must be at least 8 characters');
+            return;
+        }
+        setPasswordSaving(true);
+        try {
+            await SettingsAPI.changePassword({
+                old_password: oldPassword,
+                new_password: newPassword,
+                new_password_confirm: confirmPassword,
+            });
+            showSaved('Password changed successfully');
+            setShowPasswordForm(false);
+            setOldPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (e: any) {
+            const msg = e?.old_password?.[0] || e?.new_password?.[0] || e?.detail || 'Failed to change password';
+            showSaved(typeof msg === 'string' ? msg : 'Failed to change password');
+        }
+        setPasswordSaving(false);
+    }
+
+    async function handleExportData() {
+        try {
+            const data = await SettingsAPI.exportData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'finexa-data-export.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showSaved('Data exported successfully');
+        } catch {
+            showSaved('Failed to export data');
+        }
     }
 
     function handleDeleteData() {
@@ -193,8 +299,34 @@ export default function Settings() {
                                     <div>
                                         <label className="text-xs text-3 mb-1.5 block">Password</label>
                                         <input type="password" className="field" value="••••••••" readOnly />
-                                        <button className="text-xs mt-1.5" style={{ color: 'var(--purple)' }}>Change password</button>
+                                        <button className="text-xs mt-1.5" style={{ color: 'var(--purple)' }}
+                                            onClick={() => setShowPasswordForm(!showPasswordForm)}>
+                                            {showPasswordForm ? 'Cancel' : 'Change password'}
+                                        </button>
                                     </div>
+
+                                    {showPasswordForm && (
+                                        <div className="space-y-3 p-4 rounded-xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                                            <div>
+                                                <label className="text-xs text-3 mb-1.5 block">Current Password</label>
+                                                <input type="password" className="field" value={oldPassword}
+                                                    onChange={e => setOldPassword(e.target.value)} placeholder="Enter current password" />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-3 mb-1.5 block">New Password</label>
+                                                <input type="password" className="field" value={newPassword}
+                                                    onChange={e => setNewPassword(e.target.value)} placeholder="Enter new password" />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-3 mb-1.5 block">Confirm New Password</label>
+                                                <input type="password" className="field" value={confirmPassword}
+                                                    onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm new password" />
+                                            </div>
+                                            <button className="btn text-sm px-5" onClick={handleChangePassword} disabled={passwordSaving}>
+                                                {passwordSaving ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />} Change Password
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex justify-end mt-5 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
@@ -226,8 +358,8 @@ export default function Settings() {
                                     </SettingRow>
                                 ))}
                                 <div className="flex justify-end mt-4 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-                                    <button className="btn text-sm px-5" onClick={() => showSaved('Notification preferences saved')}>
-                                        <Save size={14} /> Save
+                                    <button className="btn text-sm px-5" onClick={handleSaveNotifications} disabled={saving}>
+                                        {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save
                                     </button>
                                 </div>
                             </div>
@@ -262,8 +394,8 @@ export default function Settings() {
                                 </div>
 
                                 <div className="flex justify-end mt-4 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-                                    <button className="btn text-sm px-5" onClick={() => showSaved('Privacy settings saved')}>
-                                        <Save size={14} /> Save
+                                    <button className="btn text-sm px-5" onClick={handleSavePrivacy} disabled={saving}>
+                                        {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save
                                     </button>
                                 </div>
                             </div>
@@ -277,7 +409,10 @@ export default function Settings() {
                                 <SettingRow label="Theme" desc="Choose your preferred colour scheme">
                                     <div className="flex items-center gap-2">
                                         {[{ v: 'dark', label: 'Dark', icon: Moon }, { v: 'light', label: 'Light', icon: Sun }].map(t => (
-                                            <button key={t.v} onClick={() => { if ((isDark && t.v === 'light') || (!isDark && t.v === 'dark')) toggle(); }}
+                                            <button key={t.v} onClick={() => {
+                                                if ((isDark && t.v === 'light') || (!isDark && t.v === 'dark')) toggle();
+                                                SettingsAPI.update({ dark_mode: t.v === 'dark' }).catch(() => {});
+                                            }}
                                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
                                                 style={(isDark && t.v === 'dark') || (!isDark && t.v === 'light')
                                                     ? { background: 'rgba(168,85,247,0.2)', border: '1px solid rgba(168,85,247,0.4)', color: 'var(--purple-light)' }
@@ -289,10 +424,14 @@ export default function Settings() {
                                 </SettingRow>
 
                                 <SettingRow label="Language" desc="Interface language">
-                                    <select className="field text-sm py-2 w-36">
-                                        <option>English</option>
-                                        <option>Hindi</option>
-                                        <option>Tamil</option>
+                                    <select className="field text-sm py-2 w-36" value={language}
+                                        onChange={e => {
+                                            setLanguage(e.target.value);
+                                            SettingsAPI.update({ language: e.target.value }).catch(() => {});
+                                        }}>
+                                        <option value="en">English</option>
+                                        <option value="hi">Hindi</option>
+                                        <option value="ta">Tamil</option>
                                     </select>
                                 </SettingRow>
 
@@ -302,7 +441,7 @@ export default function Settings() {
                                     <div className="flex gap-3">
                                         {['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626'].map(c => (
                                             <button key={c} className="w-7 h-7 rounded-full ring-2 ring-offset-1 transition-all"
-                                                style={{ background: c, ringColor: c === '#7c3aed' ? c : 'transparent', opacity: c === '#7c3aed' ? 1 : 0.4 }}
+                                                style={{ background: c, outline: c === '#7c3aed' ? `2px solid ${c}` : 'none', outlineOffset: 2, opacity: c === '#7c3aed' ? 1 : 0.4 }}
                                                 disabled />
                                         ))}
                                     </div>
@@ -330,8 +469,8 @@ export default function Settings() {
                                 <div className="card p-5">
                                     <h3 className="font-semibold text-1 mb-4 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>Data Management</h3>
                                     <div className="space-y-3">
-                                        <button className="btn-outline w-full justify-start gap-3 text-sm py-3">
-                                            <Download size={15} /> Export all data (CSV)
+                                        <button className="btn-outline w-full justify-start gap-3 text-sm py-3" onClick={handleExportData}>
+                                            <Download size={15} /> Export all data (JSON)
                                         </button>
                                         <button onClick={handleDeleteData}
                                             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"

@@ -141,3 +141,44 @@ export const badges = [
     { id: 'b5', name: 'Emergency Ready', description: 'Fully funded emergency buffer', earned: false, icon: 'lock', rarity: 'rare' },
     { id: 'b6', name: 'Budget Ninja', description: 'Stayed under budget for 3 months', earned: true, icon: 'star', rarity: 'uncommon' },
 ];
+
+export const videoLessons = [
+    { id: 'v1', title: 'Building a Bullet-Proof Emergency Fund', category: 'Risk', duration: '12:34', thumbnail: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=400&q=80', youtubeId: 'gyMwXuJrbJQ' },
+    { id: 'v2', title: 'Tax-Loss Harvesting: Advanced Strategies', category: 'Tax', duration: '18:07', thumbnail: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&q=80', youtubeId: 'p7HKvqRI_Bo' },
+    { id: 'v3', title: 'Portfolio Rebalancing for Maximum Alpha', category: 'Portfolio', duration: '22:15', thumbnail: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80', youtubeId: 'PHe0bXAIuk0' },
+    { id: 'v4', title: 'Understanding Market Cycles & Regime Shifts', category: 'Markets', duration: '15:42', thumbnail: 'https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=400&q=80', youtubeId: 'Xn7KWR9EOGQ' },
+    { id: 'v5', title: 'Debt Structuring for High Net Worth', category: 'Debt', duration: '20:10', thumbnail: 'https://images.unsplash.com/photo-1518458028785-8f86f55966c8?w=400&q=80', youtubeId: 'WEDIj9JBTC8' },
+];
+
+export const advisoryQuiz = [
+    {
+        question: 'What is the primary purpose of asset allocation in wealth management?',
+        options: ['Maximising short-term returns', 'Reducing systemic risk through diversification', 'Eliminating all portfolio volatility', 'Timing the market effectively'],
+        answer: 1,
+        rationale: 'Asset allocation distributes investments across asset classes to manage risk-return trade-offs, not to eliminate volatility or time the market.',
+    },
+    {
+        question: 'A client with a DTI ratio of 48% should prioritise which action?',
+        options: ['Increasing equity exposure', 'Accelerating high-interest debt repayment', 'Opening new credit lines', 'Investing in illiquid alternatives'],
+        answer: 1,
+        rationale: 'A DTI above 43% is considered stressed. Reducing debt load improves financial health before adding investment risk.',
+    },
+    {
+        question: 'Which metric best measures portfolio efficiency on a risk-adjusted basis?',
+        options: ['Absolute return (CAGR)', 'Sharpe Ratio', 'Maximum drawdown', 'Dividend yield'],
+        answer: 1,
+        rationale: 'The Sharpe Ratio measures excess return per unit of risk (standard deviation), making it the gold standard for risk-adjusted performance.',
+    },
+    {
+        question: 'In Modern Portfolio Theory, the Efficient Frontier represents:',
+        options: ['The set of portfolios with minimum risk only', 'Optimal portfolios offering maximum return for each risk level', 'Only equity-heavy allocations', 'Government bond yield curves'],
+        answer: 1,
+        rationale: 'The Efficient Frontier plots portfolios that deliver the highest expected return for a given level of risk — a cornerstone of MPT.',
+    },
+    {
+        question: 'What is the recommended emergency buffer for a high-income professional?',
+        options: ['1 month of expenses', '3–6 months of expenses', '12+ months of expenses', 'No buffer if insured'],
+        answer: 1,
+        rationale: 'Financial advisors recommend 3–6 months of living expenses in liquid instruments. Higher earners may trend toward 6 months due to longer job-search cycles.',
+    },
+];

@@ -4,6 +4,7 @@ import { Shield, Heart, CheckCircle, TrendingUp, Loader2, Info } from 'lucide-re
 import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts';
 import { calculateEmergencyBuffer } from '../../lib/calculations';
 import { HealthAPI, TransactionsAPI } from '../../lib/api';
+import { useTheme } from '../../contexts/ThemeContext';
 
 /* ── helpers ── */
 const fmt = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
@@ -30,6 +31,7 @@ function getBarLabel(pct: number) {
 }
 
 export default function EmergencyRisk() {
+    const { isDark } = useTheme();
     const [loading, setLoading] = useState(true);
     const [monthlyExpenses, setMonthlyExpenses] = useState(0);
     const [emergencySavings, setEmergencySavings] = useState(0);
@@ -109,28 +111,33 @@ export default function EmergencyRisk() {
         return (
             <div className="flex items-center justify-center h-[60vh]">
                 <Loader2 size={32} className="animate-spin text-purple-400" />
-                <span className="ml-3 text-slate-400">Analyzing your finances...</span>
+                <span className="ml-3" style={{ color: 'var(--text-muted)' }}>Analyzing your finances...</span>
             </div>
         );
     }
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="font-display font-bold text-2xl text-white">Risk & Safety</h1>
-                <p className="text-slate-500 text-sm mt-1">How prepared are you for financial emergencies?</p>
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: isDark ? 'rgba(168,85,247,0.12)' : 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                    <Shield size={18} className="text-purple-400" />
+                </div>
+                <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Safety Analysis</p>
+                    <h1 className="font-display font-bold text-2xl text-gradient">Risk & Safety</h1>
+                </div>
             </div>
 
             {/* Top Row: Emergency Fund + Health Score */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
                 {/* Emergency Fund Status */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card-glow p-6" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                     <div className="flex items-center gap-2 mb-1">
                         <Shield size={18} className="text-purple-400" />
-                        <h3 className="text-white font-semibold">Emergency Fund</h3>
+                        <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Emergency Fund</h3>
                     </div>
-                    <p className="text-slate-500 text-xs mb-4">How many months can you survive without income?</p>
+                    <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>How many months can you survive without income?</p>
 
                     <div className="flex items-center gap-6">
                         <div className="relative w-36 h-36 flex-shrink-0">
@@ -140,8 +147,8 @@ export default function EmergencyRisk() {
                                 </RadialBarChart>
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-2xl font-bold text-white">{monthsCoveredDisplay}</span>
-                                <span className="text-[10px] text-slate-400">months</span>
+                                <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{monthsCoveredDisplay}</span>
+                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>months</span>
                             </div>
                         </div>
 
@@ -160,20 +167,20 @@ export default function EmergencyRisk() {
 
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-slate-400">Your Savings</span>
-                                    <span className="text-white font-medium">{fmt(emergencySavings)}</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>Your Savings</span>
+                                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{fmt(emergencySavings)}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-slate-400">Monthly Expenses</span>
-                                    <span className="text-white font-medium">{fmt(monthlyExpenses)}</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>Monthly Expenses</span>
+                                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{fmt(monthlyExpenses)}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-slate-400">3-Month Safety Target</span>
-                                    <span className="text-white font-medium">{fmt(buf.idealBuffer3m)}</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>3-Month Safety Target</span>
+                                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{fmt(buf.idealBuffer3m)}</span>
                                 </div>
                                 {buf.gapTo3m > 0 && (
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Amount Still Needed</span>
+                                        <span style={{ color: 'var(--text-muted)' }}>Amount Still Needed</span>
                                         <span className="text-red-400 font-medium">{fmt(buf.gapTo3m)}</span>
                                     </div>
                                 )}
@@ -186,26 +193,26 @@ export default function EmergencyRisk() {
                             className="mt-5 p-4 rounded-xl"
                             style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)' }}>
                             <p className="text-purple-300 text-sm font-medium mb-1">💡 What You Should Do</p>
-                            <p className="text-slate-400 text-sm">
-                                Save <strong className="text-white">{fmt(buf.suggestedMonthlyAdd)}/month</strong> and you'll reach 3 months of safety in about 6 months.
+                            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                                Save <strong style={{ color: 'var(--text-primary)' }}>{fmt(buf.suggestedMonthlyAdd)}/month</strong> and you'll reach 3 months of safety in about 6 months.
                             </p>
                         </motion.div>
                     )}
                 </motion.div>
 
                 {/* Financial Health Score */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-6">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card-glow p-6" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                     <div className="flex items-center gap-2 mb-1">
                         <Heart size={18} className="text-purple-400" />
-                        <h3 className="text-white font-semibold">Financial Health Score</h3>
+                        <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Financial Health Score</h3>
                     </div>
-                    <p className="text-slate-500 text-xs mb-4">Overall health based on your spending, saving, and debt habits</p>
+                    <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Overall health based on your spending, saving, and debt habits</p>
 
                     <div className="text-center mb-5">
                         <motion.div className="text-6xl font-bold mb-2"
                             initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, type: 'spring' }}
                             style={{ color: healthInfo.color }}>
-                            {healthScore}<span className="text-2xl text-slate-500">/100</span>
+                            {healthScore}<span className="text-2xl" style={{ color: 'var(--text-muted)' }}>/100</span>
                         </motion.div>
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold"
                             style={{ background: healthInfo.bg, border: `1px solid ${healthInfo.color}30`, color: healthInfo.color }}>
@@ -215,7 +222,7 @@ export default function EmergencyRisk() {
 
                     {healthFactors.length > 0 ? (
                         <div className="space-y-3">
-                            <p className="text-slate-500 text-[10px] uppercase tracking-wider font-semibold flex items-center gap-1">
+                            <p className="text-[10px] uppercase tracking-wider font-semibold flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                                 <Info size={10} /> Higher bar = Better score
                             </p>
                             {healthFactors.map(item => {
@@ -223,12 +230,12 @@ export default function EmergencyRisk() {
                                 return (
                                     <div key={item.label}>
                                         <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-slate-400">{item.label}</span>
+                                            <span style={{ color: 'var(--text-muted)' }}>{item.label}</span>
                                             <span className="font-medium" style={{ color: getBarColor(pct) }}>
                                                 {item.score}/{item.max} &middot; {getBarLabel(pct)}
                                             </span>
                                         </div>
-                                        <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+                                        <div className="h-2 rounded-full overflow-hidden" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
                                             <motion.div className="h-full rounded-full" initial={{ width: 0 }}
                                                 animate={{ width: `${pct}%` }} transition={{ duration: 0.8 }}
                                                 style={{ background: getBarColor(pct) }} />
@@ -238,7 +245,7 @@ export default function EmergencyRisk() {
                             })}
                         </div>
                     ) : (
-                        <p className="text-slate-500 text-sm text-center py-4">
+                        <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
                             No breakdown data yet. Add more transactions to see details.
                         </p>
                     )}
@@ -246,39 +253,39 @@ export default function EmergencyRisk() {
             </div>
 
             {/* Quick Summary Cards */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card p-5">
-                <h3 className="text-white font-semibold mb-4">Key Numbers at a Glance</h3>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
+                <h3 className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Key Numbers at a Glance</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 rounded-xl text-center" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.1)' }}>
                         <div className="text-xl font-bold mb-0.5" style={{ color: buf.isSafe ? '#10b981' : '#ef4444' }}>
                             {monthsCoveredDisplay} mo
                         </div>
-                        <div className="text-xs text-slate-400 font-medium">Survival Time</div>
-                        <div className="text-[10px] text-slate-600">if income stops</div>
+                        <div className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Survival Time</div>
+                        <div className="text-[10px]" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>if income stops</div>
                     </div>
                     <div className="p-4 rounded-xl text-center" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.1)' }}>
                         <div className="text-xl font-bold mb-0.5 text-purple-400">{fmt(monthlyExpenses)}</div>
-                        <div className="text-xs text-slate-400 font-medium">Monthly Spend</div>
-                        <div className="text-[10px] text-slate-600">this month</div>
+                        <div className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Monthly Spend</div>
+                        <div className="text-[10px]" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>this month</div>
                     </div>
                     <div className="p-4 rounded-xl text-center" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.1)' }}>
                         <div className="text-xl font-bold mb-0.5 text-cyan-400">{fmt(monthlyIncome)}</div>
-                        <div className="text-xs text-slate-400 font-medium">Monthly Income</div>
-                        <div className="text-[10px] text-slate-600">this month</div>
+                        <div className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Monthly Income</div>
+                        <div className="text-[10px]" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>this month</div>
                     </div>
                     <div className="p-4 rounded-xl text-center" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.1)' }}>
                         <div className="text-xl font-bold mb-0.5" style={{ color: savingsRate >= 20 ? '#10b981' : savingsRate >= 10 ? '#f59e0b' : '#ef4444' }}>
                             {savingsRate}%
                         </div>
-                        <div className="text-xs text-slate-400 font-medium">Savings Rate</div>
-                        <div className="text-[10px] text-slate-600">{savingsRate >= 20 ? 'healthy' : savingsRate >= 10 ? 'okay' : 'low'}</div>
+                        <div className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Savings Rate</div>
+                        <div className="text-[10px]" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{savingsRate >= 20 ? 'healthy' : savingsRate >= 10 ? 'okay' : 'low'}</div>
                     </div>
                 </div>
             </motion.div>
 
             {/* Improvement Actions */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-5">
-                <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card-glow p-5" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
+                <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                     <TrendingUp size={16} className="text-purple-400" /> What You Can Improve
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -288,7 +295,7 @@ export default function EmergencyRisk() {
                             <span className="text-2xl flex-shrink-0">{item.icon}</span>
                             <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-white text-sm font-medium">{item.title}</p>
+                                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.title}</p>
                                     <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
                                         item.priority === 'High' ? 'bg-red-500/15 text-red-400'
                                         : item.priority === 'Medium' ? 'bg-yellow-500/15 text-yellow-400'
@@ -297,7 +304,7 @@ export default function EmergencyRisk() {
                                         {item.priority}
                                     </span>
                                 </div>
-                                <p className="text-slate-400 text-xs leading-relaxed">{item.desc}</p>
+                                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{item.desc}</p>
                             </div>
                             <CheckCircle size={14} className="text-purple-400 flex-shrink-0 mt-0.5" />
                         </div>

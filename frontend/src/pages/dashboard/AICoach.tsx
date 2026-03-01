@@ -5,6 +5,7 @@ import {
     AlertCircle, Zap, RefreshCw, Copy, Check, ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AIAPI, AuthAPI, BASE_URL } from '../../lib/api';
 
 // Debounced credit refresh to avoid hammering the API
@@ -82,6 +83,7 @@ function BotMessage({ msg, onCopy }: { msg: ChatMsg; onCopy: (t: string) => void
 
 export default function AICoach() {
     const { user, refreshUser } = useAuth();
+    const { isDark } = useTheme();
     const aiCredits = user?.ai_credits ?? 0;
     const [eli15Mode, setEli15Mode] = useState(false);
     const toggleEli15 = () => setEli15Mode(p => !p);
@@ -234,8 +236,8 @@ export default function AICoach() {
     return (
         <div className="flex flex-col h-[calc(100vh-9rem)] max-w-3xl mx-auto">
             {/* Header */}
-            <div className="card rounded-b-none px-5 py-4 flex items-center justify-between flex-shrink-0"
-                style={{ borderBottomColor: 'transparent' }}>
+            <div className="card-glow rounded-b-none px-5 py-4 flex items-center justify-between flex-shrink-0"
+                style={{ borderBottomColor: 'transparent', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                 <div className="flex items-center gap-3">
                     <div className="relative">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -299,7 +301,8 @@ export default function AICoach() {
             </div>
 
             {/* Messages */}
-            <div className="card rounded-none border-y-0 flex-1 overflow-y-auto p-5 space-y-5">
+            <div className="card-glow rounded-none border-y-0 flex-1 overflow-y-auto p-5 space-y-5"
+                style={{ background: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.6)' }}>
                 {/* Starters */}
                 <AnimatePresence>
                     {showStarters && (
@@ -365,7 +368,8 @@ export default function AICoach() {
             </div>
 
             {/* Input */}
-            <div className="card rounded-t-none border-t-0 px-4 py-4 flex-shrink-0">
+            <div className="card-glow rounded-t-none border-t-0 px-4 py-4 flex-shrink-0"
+                style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)' }}>
                 {lowCredits && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
                         className="flex items-center justify-between p-2.5 mb-3 rounded-xl text-xs"

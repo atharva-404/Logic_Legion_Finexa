@@ -25,8 +25,11 @@ from .serializers import (
     SendVerificationEmailSerializer,
     NotificationSerializer,
     OnboardingSerializer,
+    UserSettingsSerializer,
+    ChangePasswordSerializer,
+    UserProfileFullSerializer,
 )
-from .models import Notification
+from .models import Notification, UserSettings
 from .auth import generate_jwt_tokens
 
 User = get_user_model()
@@ -731,3 +734,134 @@ class PurchaseCreditsAPIView(generics.GenericAPIView):
             'credits_added': plan['credits'],
             'total_credits': user.credits,
         }, status=status.HTTP_200_OK)
+
+
+# ── Settings Views ──────────────────────────────────────────────
+
+def _get_or_create_settings(user):
+    """Get or create UserSettings for a user."""
+    settings, _ = UserSettings.objects.get_or_create(user=user)
+    return settings
+
+
+class UserSettingsView(generics.RetrieveUpdateAPIView):
+    """
+    GET  /api/users/settings/ — retrieve user preferences
+    PUT  /api/users/settings/ — update user preferences
+    PATCH /api/users/settings/ — partial update
+    """
+    serializer_class = UserSettingsSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return _get_or_create_settings(self.request.user)
+
+
+class ChangePasswordView(generics.GenericAPIView):
+    """
+    POST /api/users/change-password/
+    Change password for authenticated user.
+    """
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        if not user.check_password(serializer.validated_data['old_password']):
+            return Response(
+                {'old_password': ['Current password is incorrect.']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+        return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+
+
+class UserProfileFullView(generics.RetrieveAPIView):
+    """
+    GET /api/users/profile/full/
+    Full profile + settings + financial summary for the settings page.
+    """
+    serializer_class = UserProfileFullSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        user = self.request.user
+        # Ensure settings exist
+        _get_or_create_settings(user)
+        return user
+
+    def retrieve(self, request, *args, **kwargs):
+        user = self.get_object()
+        profile_data = self.get_serializer(user).data
+
+        # Attach financial summary
+        from transactions.models import Transaction
+        from django.db.models import Sum
+        from django.utils import timezone
+        from decimal import Decimal
+
+        now = timezone.now()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        month_txns = Transaction.objects.filter(user=user, date__gte=month_start)
+        income = float(month_txns.filter(type='income').aggregate(t=Sum('amount'))['t'] or Decimal('0'))
+        expenses = float(month_txns.filter(type='expense').aggregate(t=Sum('amount'))['t'] or Decimal('0'))
+        profile_income = float(user.income or 0)
+        total_income = max(income, profile_income)
+
+        profile_data['financial_summary'] = {
+            'monthly_income': round(total_income, 2),
+            'monthly_expenses': round(expenses, 2),
+            'savings': round(total_income - expenses, 2),
+            'ai_credits': user.credits,
+        }
+
+        return Response(profile_data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def export_user_data(request):
+    """
+    POST /api/users/export-data/
+    Generate a JSON export of all user data.
+    """
+    import json
+    from transactions.models import Transaction
+    from django.forms.models import model_to_dict
+
+    user = request.user
+    txns = list(Transaction.objects.filter(user=user).values(
+        'id', 'amount', 'category', 'type', 'description', 'date',
+    ))
+    # Convert dates / decimals to strings
+    for tx in txns:
+        tx['amount'] = str(tx['amount'])
+        tx['date'] = str(tx['date'])
+
+    notifications = list(Notification.objects.filter(user=user).values(
+        'id', 'title', 'message', 'notification_type', 'is_read', 'created_at',
+    ))
+    for n in notifications:
+        n['created_at'] = str(n['created_at'])
+
+    settings_obj = _get_or_create_settings(user)
+
+    data = {
+        'profile': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'income': str(user.income),
+            'date_joined': str(user.date_joined),
+        },
+        'settings': UserSettingsSerializer(settings_obj).data,
+        'transactions': txns,
+        'notifications': notifications,
+    }
+
+    return Response(data, status=status.HTTP_200_OK)

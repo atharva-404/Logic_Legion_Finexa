@@ -298,17 +298,17 @@ export default function DashboardLayout() {
                 ))}
             </nav>
 
-            {/* User + logout */}
             <div className="px-2 pt-2 pb-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border)' }}>
+                {/* User Info Card */}
                 {!collapsed && (
-                    <div className="flex items-center gap-3 px-2 py-2 mb-1">
-                        <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-xs font-bold text-white glow-sm"
+                    <div className="flex items-center gap-3 px-2 py-2 mb-2">
+                        <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
                             style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
                             {initials}
                         </div>
                         <div className="min-w-0">
-                            <p className="text-sm font-semibold text-1 truncate">{user?.first_name || user?.username}</p>
-                            <p className="text-[10px] text-3 truncate">{user?.email}</p>
+                            <div className="text-xs font-semibold truncate" style={{ color: 'var(--text-1)' }}>{user?.username || 'User'}</div>
+                            <div className="text-[10px] truncate" style={{ color: 'var(--text-3)' }}>{user?.email || ''}</div>
                         </div>
                     </div>
                 )}
@@ -316,7 +316,9 @@ export default function DashboardLayout() {
                     className={`nav-item w-full hover:!text-red-500 hover:!bg-red-500/8 ${collapsed ? 'justify-center px-0' : ''}`}
                     style={{ color: isDark ? 'rgba(239,68,68,0.55)' : 'rgba(220,38,38,0.65)' }}>
                     <LogOut size={15} className="flex-shrink-0" />
-                    {!collapsed && <span>Sign Out</span>}
+                    {!collapsed && (
+                        <span className="text-xs font-semibold">Sign Out</span>
+                    )}
                 </button>
             </div>
         </div>
@@ -324,7 +326,6 @@ export default function DashboardLayout() {
 
     return (
         <div className="min-h-screen flex" style={{ background: 'var(--bg)' }}>
-            {/* Desktop Sidebar */}
             <motion.aside animate={{ width: collapsed ? 60 : 228 }} transition={{ duration: 0.22, ease: 'easeInOut' }}
                 className="hidden md:flex flex-col flex-shrink-0 sticky top-0 h-screen z-10"
                 style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
@@ -403,36 +404,33 @@ export default function DashboardLayout() {
                             {aiCredits >= 1000 ? `${(aiCredits / 1000).toFixed(0)}k` : aiCredits} credits
                         </button>
 
-                        {/* Finexa Score */}
                         <FinexaScorePill />
 
-                        {/* Theme toggle */}
                         <ThemeToggle size="sm" />
 
-                        {/* Bell */}
                         <button onClick={() => setNotifOpen(!notifOpen)}
                             className="w-9 h-9 rounded-xl flex items-center justify-center relative transition-all duration-200"
                             style={{
                                 background: notifOpen ? 'rgba(168,85,247,0.18)' : 'rgba(168,85,247,0.04)',
                                 border: `1px solid ${notifOpen ? 'var(--purple)' : 'var(--border)'}`,
+                                boxShadow: notifOpen ? (isDark ? '0 0 16px rgba(168,85,247,0.3)' : '0 0 12px rgba(168,85,247,0.15)') : 'none',
                             }}>
                             <Bell size={15} style={{ color: notifOpen ? 'var(--purple)' : 'var(--text-3)' }} />
                             {unreadNotifs > 0 && (
                                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                                     className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                                    style={{ background: 'var(--purple)' }} />
+                                    style={{ background: 'var(--purple)', boxShadow: `0 0 6px ${isDark ? 'rgba(168,85,247,0.9)' : 'rgba(124,58,237,0.4)'}` }} />
                             )}
                         </button>
 
-                        {/* Avatar */}
                         <button onClick={() => navigate('/dashboard/settings')}
                             className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white transition-all duration-200"
                             style={{
                                 background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
                                 boxShadow: '0 0 18px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.3)',
                             }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 28px rgba(168,85,247,0.7), 0 2px 8px rgba(0,0,0,0.3)'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 18px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.3)'; }}>
+                            onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 0 28px rgba(168,85,247,0.7), 0 2px 12px rgba(0,0,0,0.4)')}
+                            onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 0 18px rgba(168,85,247,0.45), 0 2px 8px rgba(0,0,0,0.3)')}>
                             {initials}
                         </button>
                     </div>
