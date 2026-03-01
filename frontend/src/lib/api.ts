@@ -1,9 +1,9 @@
 /**
  * Finexa API Service Layer
- * Base URL: http://localhost:8000
+ * Base URL: https://logic-legion-finexa.onrender.com
  */
 
-export const BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
+export const BASE_URL = (import.meta as any).env.VITE_API_URL || 'https://logic-legion-finexa.onrender.com';
 
 // ─── Token helpers ──────────────────────────────────────────────
 function getTokens() {

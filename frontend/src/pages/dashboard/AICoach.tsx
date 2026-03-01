@@ -133,7 +133,7 @@ export default function AICoach() {
         const tokens = AuthAPI.getTokens();
         if (!tokens || !tokens.access) return;
 
-        const baseUrl = BASE_URL || 'http://localhost:8000';
+        const baseUrl = BASE_URL || 'https://logic-legion-finexa.onrender.com';
         const wsUrl = baseUrl.replace(/^http/, 'ws') + `/ws/ai/chat/?token=${tokens.access}`;
         const socket = new WebSocket(wsUrl);
 
