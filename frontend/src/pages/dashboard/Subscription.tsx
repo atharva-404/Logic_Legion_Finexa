@@ -135,7 +135,7 @@ export default function Subscription() {
                     return (
                         <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
                             className={`glass relative flex flex-col ${plan.popular ? 'ring-1' : ''}`}
-                            style={plan.popular ? { ringColor: plan.color } : {}}>
+                            style={plan.popular ? { borderColor: plan.color, boxShadow: `0 0 0 1px ${plan.color}` } : {}}>
 
                             {plan.popular && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
