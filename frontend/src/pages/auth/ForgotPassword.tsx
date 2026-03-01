@@ -20,7 +20,7 @@ export default function ForgotPassword() {
         setLoading(true);
         try {
             const res = await fetch(
-                `${(import.meta as any).env.VITE_API_URL || 'http://localhost:8000'}/auth/forgot-password/`,
+                `${(import.meta as any).env.VITE_API_URL || 'https://logic-legion-finexa.onrender.com'}/auth/forgot-password/`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
