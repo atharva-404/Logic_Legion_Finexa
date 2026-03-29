@@ -11,6 +11,11 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +25,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@ldr)%no1*u!axh!_wqw#ki8!d#tbs1ht(&&)a-hu%ko2y1)mk'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-@ldr)%no1*u!axh!_wqw#ki8!d#tbs1ht(&&)a-hu%ko2y1)mk')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = ['*']
+_allowed_hosts_env = os.getenv('ALLOWED_HOSTS', '')
+if _allowed_hosts_env:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_env.split(',') if h.strip()]
+elif DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -60,7 +71,17 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS Configuration
+# In production set CORS_ALLOWED_ORIGINS in your .env file.
+# Example: CORS_ALLOWED_ORIGINS=https://your-frontend.vercel.app,https://yourdomain.com
+_cors_origins_env = os.getenv('CORS_ALLOWED_ORIGINS', '')
+if _cors_origins_env:
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins_env.split(',') if o.strip()]
+    CORS_ALLOW_ALL_ORIGINS = False
+else:
+    # Allow all origins only in local development (DEBUG=True); block everything in production.
+    CORS_ALLOW_ALL_ORIGINS = DEBUG
+
 ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [
@@ -135,12 +156,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-import os
-from datetime import timedelta
-from dotenv import load_dotenv
-
-load_dotenv()
-
 # Environment variables
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 AUTH_USER_MODEL = "users.User"
@@ -174,6 +189,12 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
+    ),
+    # Disable the browsable HTML API in production to avoid leaking API docs.
+    'DEFAULT_RENDERER_CLASSES': (
+        ['rest_framework.renderers.JSONRenderer', 'rest_framework.renderers.BrowsableAPIRenderer']
+        if DEBUG
+        else ['rest_framework.renderers.JSONRenderer']
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
